@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import secrets
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
@@ -14,6 +14,7 @@ from app.schemas import (
     BulkUpdateRequest,
     ExamCreate,
     ExamRead,
+    ImportPapersResponse,
     LoginRequest,
     LoginResponse,
     OperatorCreate,
@@ -27,6 +28,8 @@ from app.schemas import (
     UniversityRead,
 )
 from app.services.workspace import (
+    bulk_delete_papers,
+    bulk_update_papers,
     create_exam,
     create_operator,
     create_paper,
@@ -36,12 +39,12 @@ from app.services.workspace import (
     delete_paper,
     delete_university,
     get_bootstrap,
+    get_paper_import_sample,
     get_report_overview,
+    import_papers,
     reset_defaults,
     seed_defaults,
     update_paper,
-    bulk_delete_papers,
-    bulk_update_papers,
 )
 
 
@@ -176,6 +179,31 @@ def add_paper(payload: PaperCreate, _: dict[str, str] = Depends(get_current_admi
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
+@app.get("/api/papers/import-sample")
+def download_paper_import_sample(_: dict[str, str] = Depends(get_current_admin)) -> Response:
+    return Response(
+        content=get_paper_import_sample(),
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="paper-import-sample.csv"'},
+    )
+
+
+@app.post("/api/papers/import", response_model=ImportPapersResponse)
+async def import_paper_rows(
+    universityId: str = Form(...),
+    examId: str = Form(...),
+    file: UploadFile = File(...),
+    _: dict[str, str] = Depends(get_current_admin),
+) -> ImportPapersResponse:
+    try:
+        content = (await file.read()).decode("utf-8-sig")
+        return import_papers(get_database(), universityId, examId, content)
+    except UnicodeDecodeError as exc:
+        raise HTTPException(status_code=400, detail="Please upload a UTF-8 CSV file.") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @app.patch("/api/papers/{paper_id}", response_model=PaperRead)
 def edit_paper(paper_id: str, payload: PaperUpdate, _: dict[str, str] = Depends(get_current_admin)) -> PaperRead:
     try:
@@ -193,8 +221,11 @@ def remove_paper(paper_id: str, _: dict[str, str] = Depends(get_current_admin)) 
 
 @app.post("/api/papers/bulk-update")
 def update_papers_bulk(payload: BulkUpdateRequest, _: dict[str, str] = Depends(get_current_admin)) -> dict:
-    updated = bulk_update_papers(get_database(), payload)
-    return {"updated": updated}
+    try:
+        updated = bulk_update_papers(get_database(), payload)
+        return {"updated": updated}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.post("/api/papers/bulk-delete")

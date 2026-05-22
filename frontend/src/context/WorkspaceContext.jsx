@@ -95,6 +95,7 @@ export function WorkspaceProvider({ children }) {
     createOperator: (payload) => runMutation(() => workspaceApi.createOperator(payload)),
     deleteOperator: (id) => runMutation(() => workspaceApi.deleteOperator(id)),
     createPaper: (payload) => runMutation(() => workspaceApi.createPaper(payload)),
+    importPapers: (file, payload) => runMutation(() => workspaceApi.importPapers(file, payload)),
     updatePaper: (id, payload) => runMutation(() => workspaceApi.updatePaper(id, payload)),
     deletePaper: (id) => runMutation(() => workspaceApi.deletePaper(id)),
     bulkUpdatePapers: (payload) => runMutation(() => workspaceApi.bulkUpdatePapers(payload)),

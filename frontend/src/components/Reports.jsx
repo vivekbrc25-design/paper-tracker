@@ -46,11 +46,18 @@ export function ReportsPage() {
     { status: "Completed", title: "Efficiency Legend", dot: "bg-emerald-500" },
   ];
 
+  const getHistoryEntries = (operatorId) =>
+    analyzedPapers.flatMap((paper) => (paper.assignmentHistory ?? []).filter((entry) => entry.operatorId === operatorId));
+
   const champions = stages.map((stage) => {
     let bestOperator = null;
     let bestCount = 0;
     operators.forEach((operator) => {
-      const count = papers.filter((paper) => paper.assignedUserId === operator.id && paper.status === stage.status).length;
+      const historyEntries = getHistoryEntries(operator.id);
+      const count =
+        stage.status === "Completed"
+          ? historyEntries.filter((entry) => entry.outcome === "completed").length
+          : historyEntries.filter((entry) => entry.stage === stage.status && entry.outcome === "completed").length;
       if (count > bestCount) {
         bestCount = count;
         bestOperator = operator;
@@ -59,9 +66,9 @@ export function ReportsPage() {
     return { ...stage, bestOperator, bestCount };
   });
 
-  const filteredTimelinePapers = papers.filter((paper) => {
+  const filteredTimelinePapers = analyzedPapers.filter((paper) => {
     const query = search.trim().toLowerCase();
-    return !query || paper.name.toLowerCase().includes(query) || paper.code.toLowerCase().includes(query);
+    return !query || (paper.name ?? "").toLowerCase().includes(query) || paper.code.toLowerCase().includes(query);
   });
 
   return (
@@ -184,11 +191,13 @@ export function ReportsPage() {
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs dark:divide-slate-800/50">
               {operators.map((operator) => {
-                const assigned = papers.filter((paper) => paper.assignedUserId === operator.id);
-                const active = assigned.filter((paper) => paper.status !== "Completed").length;
-                const completed = assigned.filter((paper) => paper.status === "Completed").length;
-                const total = assigned.length;
-                const rate = total ? Math.round((completed / total) * 100) : 0;
+                const historyEntries = getHistoryEntries(operator.id);
+                const active = historyEntries.filter((entry) => entry.outcome === "active").length;
+                const completed = historyEntries.filter((entry) => entry.outcome === "completed").length;
+                const returned = historyEntries.filter((entry) => entry.outcome === "returned").length;
+                const total = historyEntries.length;
+                const finished = completed + returned;
+                const rate = finished ? Math.round((completed / finished) * 100) : 0;
                 return (
                   <tr key={operator.id}>
                     <td className="px-4 py-2.5 font-bold text-slate-800 dark:text-white">{operator.name}</td>

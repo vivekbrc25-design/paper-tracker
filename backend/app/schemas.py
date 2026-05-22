@@ -68,11 +68,11 @@ class AssignmentHistoryEntry(BaseModel):
 
 
 class PaperBase(BaseModel):
-    name: str = Field(min_length=2, max_length=200)
+    name: str | None = Field(default=None, max_length=200)
     code: str = Field(min_length=2, max_length=50)
     universityId: str
     examId: str
-    date: str
+    date: str | None = None
     status: str = "Typing"
     assignedUserId: str | None = None
 
@@ -119,6 +119,12 @@ class ReportOverview(BaseModel):
     statusCounts: dict[str, int]
     operatorLedger: list[dict]
     timingSummary: dict[str, dict[str, float | int]]
+
+
+class ImportPapersResponse(BaseModel):
+    processed: int
+    created: int
+    updated: int
 
 
 class LoginRequest(BaseModel):

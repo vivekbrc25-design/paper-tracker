@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import csv
 from datetime import UTC, datetime
+from io import StringIO
 from uuid import uuid4
 
 from pymongo.errors import DuplicateKeyError
@@ -10,6 +12,7 @@ from app.schemas import (
     BulkDeleteRequest,
     BulkUpdateRequest,
     ExamCreate,
+    ImportPapersResponse,
     OperatorCreate,
     PaperCreate,
     PaperUpdate,
@@ -36,6 +39,12 @@ STATUS_TO_ROLE = {
 
 def utc_now() -> datetime:
     return datetime.now(UTC).replace(microsecond=0)
+
+
+def _ensure_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
 
 
 def serialize_document(document: dict | None) -> dict | None:
@@ -113,7 +122,9 @@ def _minutes_between(started_at: str | datetime, finished_at: datetime) -> int:
         started = datetime.fromisoformat(started_at.replace("Z", "+00:00"))
     else:
         started = started_at
-    return max(0, int((finished_at - started).total_seconds() // 60))
+    started_utc = _ensure_utc(started)
+    finished_utc = _ensure_utc(finished_at)
+    return max(0, int((finished_utc - started_utc).total_seconds() // 60))
 
 
 def _create_active_assignment(stage: str, operator_id: str, operator_name: str | None) -> dict:
@@ -279,7 +290,7 @@ def create_paper(database, payload: PaperCreate) -> dict:
 
     document = {
         "id": uuid4().hex,
-        "name": payload.name.strip(),
+        "name": payload.name.strip() if payload.name else "",
         "code": payload.code.strip().upper(),
         "universityId": payload.universityId,
         "universityName": university["name"],
@@ -314,8 +325,8 @@ def update_paper(database, paper_id: str, payload: PaperUpdate) -> dict:
 
     if "code" in updated and updated["code"]:
         updated["code"] = updated["code"].strip().upper()
-    if "name" in updated and updated["name"]:
-        updated["name"] = updated["name"].strip()
+    if "name" in updated:
+        updated["name"] = updated["name"].strip() if updated["name"] else ""
 
     university = universities_by_id.get(updated["universityId"])
     exam = exams_by_id.get(updated["examId"])
@@ -366,6 +377,108 @@ def bulk_delete_papers(database, payload: BulkDeleteRequest) -> None:
     database[COLLECTIONS["papers"]].delete_many({"id": {"$in": payload.paperIds}})
 
 
+def get_paper_import_sample() -> str:
+    return "\n".join(
+        [
+            "paperCode,paperName,examDate",
+            "MAT-401,Advanced Calculus,2026-06-15",
+            "PHY-210,Engineering Physics,",
+        ]
+    )
+
+
+def import_papers(database, university_id: str, exam_id: str, csv_content: str) -> ImportPapersResponse:
+    universities_by_id = _university_lookup(database)
+    exams_by_id = _exam_lookup(database)
+    operators_by_id = _operator_lookup(database)
+
+    university = universities_by_id.get(university_id)
+    exam = exams_by_id.get(exam_id)
+    if not university or not exam:
+        raise ValueError("Please select a valid university and exam session before importing.")
+    if exam["universityId"] != university_id:
+        raise ValueError("The selected exam session does not belong to the selected university.")
+
+    try:
+        reader = csv.DictReader(StringIO(csv_content))
+    except csv.Error as exc:
+        raise ValueError("The import file could not be read as CSV.") from exc
+
+    if not reader.fieldnames:
+        raise ValueError("The import file is empty.")
+
+    header_map = {header.strip().lower(): header for header in reader.fieldnames if header}
+    code_key = header_map.get("papercode") or header_map.get("paper_code") or header_map.get("code")
+    name_key = header_map.get("papername") or header_map.get("paper_name") or header_map.get("name")
+    date_key = header_map.get("examdate") or header_map.get("exam_date") or header_map.get("date")
+
+    if not code_key:
+        raise ValueError("The CSV must include a paperCode column.")
+
+    processed = 0
+    created = 0
+    updated_count = 0
+
+    for row_index, row in enumerate(reader, start=2):
+        if not any((value or "").strip() for value in row.values()):
+            continue
+
+        code = (row.get(code_key) or "").strip().upper()
+        name = (row.get(name_key) or "").strip() if name_key else ""
+        date = (row.get(date_key) or "").strip() if date_key else ""
+
+        if not code:
+            raise ValueError(f"Row {row_index} is missing paperCode.")
+
+        existing = serialize_document(database[COLLECTIONS["papers"]].find_one({"examId": exam_id, "code": code}))
+        if existing:
+            updated = dict(existing)
+            if name:
+                updated["name"] = name
+            if date:
+                updated["date"] = date
+            updated["universityId"] = university_id
+            updated["universityName"] = university["name"]
+            updated["examId"] = exam_id
+            updated["examName"] = exam["name"]
+            updated = _normalize_assignment_for_status(updated, operators_by_id)
+            updated["assignmentHistory"] = _reconcile_history(existing, updated, operators_by_id)
+            database[COLLECTIONS["papers"]].replace_one({"id": existing["id"]}, prepare_document(updated))
+            updated_count += 1
+        else:
+            document = {
+                "id": uuid4().hex,
+                "name": name,
+                "code": code,
+                "universityId": university_id,
+                "universityName": university["name"],
+                "examId": exam_id,
+                "examName": exam["name"],
+                "date": date or None,
+                "status": "Typing",
+                "assignedUserId": None,
+                "assignmentHistory": [],
+            }
+            document = _normalize_assignment_for_status(document, operators_by_id)
+            document["assignmentHistory"] = _reconcile_history(
+                {"status": "Typing", "assignedUserId": None, "assignmentHistory": []},
+                document,
+                operators_by_id,
+            )
+            try:
+                database[COLLECTIONS["papers"]].insert_one(prepare_document(document))
+            except DuplicateKeyError as exc:
+                raise ValueError(f"Row {row_index} uses a duplicate paper code.") from exc
+            created += 1
+
+        processed += 1
+
+    if processed == 0:
+        raise ValueError("The import file does not contain any paper rows.")
+
+    return ImportPapersResponse(processed=processed, created=created, updated=updated_count)
+
+
 def get_report_overview(database) -> ReportOverview:
     papers = [serialize_document(doc) for doc in database[COLLECTIONS["papers"]].find()]
     operators = [serialize_document(doc) for doc in database[COLLECTIONS["operators"]].find()]
@@ -377,11 +490,18 @@ def get_report_overview(database) -> ReportOverview:
 
     operator_ledger = []
     for operator in operators:
-        assigned = [paper for paper in papers if paper.get("assignedUserId") == operator["id"]]
-        total = len(assigned)
-        completed = len([paper for paper in assigned if paper["status"] == "Completed"])
-        active = len([paper for paper in assigned if paper["status"] != "Completed"])
-        rate = round((completed / total) * 100, 2) if total else 0.0
+        history_entries = [
+            entry
+            for paper in papers
+            for entry in paper.get("assignmentHistory", [])
+            if entry.get("operatorId") == operator["id"]
+        ]
+        active = len([entry for entry in history_entries if entry.get("outcome") == "active"])
+        completed = len([entry for entry in history_entries if entry.get("outcome") == "completed"])
+        returned = len([entry for entry in history_entries if entry.get("outcome") == "returned"])
+        total = len(history_entries)
+        finished = completed + returned
+        rate = round((completed / finished) * 100, 2) if finished else 0.0
         operator_ledger.append(
             {
                 "id": operator["id"],
@@ -389,6 +509,7 @@ def get_report_overview(database) -> ReportOverview:
                 "role": operator["role"],
                 "activeCount": active,
                 "completedCount": completed,
+                "returnedCount": returned,
                 "totalCount": total,
                 "completionRate": rate,
             }

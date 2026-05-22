@@ -38,6 +38,14 @@ export const workspaceApi = {
   createOperator: (payload) => unwrap(client.post("/api/operators", payload)),
   deleteOperator: (id) => unwrap(client.delete(`/api/operators/${id}`)),
   createPaper: (payload) => unwrap(client.post("/api/papers", payload)),
+  downloadPaperImportSample: () => client.get("/api/papers/import-sample", { responseType: "blob" }),
+  importPapers: (file, payload) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("universityId", payload.universityId);
+    formData.append("examId", payload.examId);
+    return unwrap(client.post("/api/papers/import", formData));
+  },
   updatePaper: (id, payload) => unwrap(client.patch(`/api/papers/${id}`, payload)),
   deletePaper: (id) => unwrap(client.delete(`/api/papers/${id}`)),
   bulkUpdatePapers: (payload) => unwrap(client.post("/api/papers/bulk-update", payload)),
