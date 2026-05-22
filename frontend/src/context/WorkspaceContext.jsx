@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 
 import { workspaceApi } from "../api.js";
+import { useAuth } from "./AuthContext.jsx";
 
 const WorkspaceContext = createContext(null);
 
@@ -12,6 +13,7 @@ const initialState = {
 };
 
 export function WorkspaceProvider({ children }) {
+  const { isAuthenticated, checkingAuth } = useAuth();
   const [workspace, setWorkspace] = useState(initialState);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -44,8 +46,18 @@ export function WorkspaceProvider({ children }) {
   };
 
   useEffect(() => {
+    if (checkingAuth) {
+      return;
+    }
+    if (!isAuthenticated) {
+      setWorkspace(initialState);
+      setLoading(false);
+      setBusy(false);
+      setError("");
+      return;
+    }
     refreshWorkspace(true).catch(() => {});
-  }, []);
+  }, [checkingAuth, isAuthenticated]);
 
   const runMutation = async (action, bootstrapResponse = false) => {
     setBusy(true);

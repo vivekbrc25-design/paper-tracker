@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 
+import { useAuth } from "../context/AuthContext.jsx";
 import { useWorkspace } from "../context/WorkspaceContext.jsx";
 import { useFeedback } from "./Feedback.jsx";
 
@@ -41,6 +42,7 @@ function NavIcon({ name }) {
 
 export function AppShell() {
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
+  const { user, logout } = useAuth();
   const { busy, theme, setTheme, resetWorkspace } = useWorkspace();
   const { confirm, showToast } = useFeedback();
   const location = useLocation();
@@ -58,9 +60,9 @@ export function AppShell() {
   };
 
   const handleLogout = async () => {
-    showToast("Session closed. Returning to landing desk...", "info");
-    await resetWorkspace();
-    navigate("/papers");
+    logout();
+    showToast("Session closed. Returning to login...", "info");
+    navigate("/login");
   };
 
   return (
@@ -123,7 +125,7 @@ export function AppShell() {
               {isSidebarExpanded && (
                 <div className="overflow-hidden">
                   <h4 className="text-xs font-semibold text-slate-400">Admin</h4>
-                  <p className="truncate text-sm font-semibold text-slate-800 dark:text-slate-200">Paper Tracker Admin</p>
+                  <p className="truncate text-sm font-semibold text-slate-800 dark:text-slate-200">{user?.displayName ?? "Paper Tracker Admin"}</p>
                 </div>
               )}
             </div>
@@ -163,7 +165,7 @@ export function AppShell() {
                 )}
               </button>
               <span className="hidden rounded-md bg-slate-100 px-2 py-1 text-xs text-slate-400 dark:bg-slate-800 md:inline">
-                Paper Tracker Admin (<span className="text-slate-600 dark:text-slate-300">admin</span>)
+                {user?.displayName ?? "Paper Tracker Admin"} (<span className="text-slate-600 dark:text-slate-300">{user?.userId ?? "admin"}</span>)
               </span>
               {busy && <span className="hidden text-xs text-brand-500 md:inline">Syncing workspace...</span>}
               <button

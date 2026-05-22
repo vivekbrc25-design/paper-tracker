@@ -4,6 +4,21 @@ const client = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL ?? "",
 });
 
+export function setAuthToken(token) {
+  if (token) {
+    client.defaults.headers.common.Authorization = `Bearer ${token}`;
+    localStorage.setItem("paperflow_auth_token", token);
+    return;
+  }
+  delete client.defaults.headers.common.Authorization;
+  localStorage.removeItem("paperflow_auth_token");
+}
+
+const storedToken = localStorage.getItem("paperflow_auth_token");
+if (storedToken) {
+  setAuthToken(storedToken);
+}
+
 function unwrap(promise) {
   return promise.then((response) => response.data).catch((error) => {
     const detail = error.response?.data?.detail;
@@ -12,6 +27,8 @@ function unwrap(promise) {
 }
 
 export const workspaceApi = {
+  login: (payload) => unwrap(client.post("/api/auth/login", payload)),
+  getSession: () => unwrap(client.get("/api/auth/session")),
   getBootstrap: () => unwrap(client.get("/api/bootstrap")),
   resetWorkspace: () => unwrap(client.post("/api/reset")),
   createUniversity: (payload) => unwrap(client.post("/api/universities", payload)),

@@ -119,3 +119,19 @@ class ReportOverview(BaseModel):
     statusCounts: dict[str, int]
     operatorLedger: list[dict]
     timingSummary: dict[str, dict[str, float | int]]
+
+
+class LoginRequest(BaseModel):
+    userId: str
+    password: str
+
+
+class LoginResponse(BaseModel):
+    accessToken: str
+    tokenType: str = "bearer"
+    user: dict[str, str]
+
+
+class SessionResponse(BaseModel):
+    authenticated: bool
+    user: dict[str, str]
