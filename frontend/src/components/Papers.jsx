@@ -1,0 +1,686 @@
+import { useEffect, useState } from "react";
+
+import { useWorkspace } from "../context/WorkspaceContext.jsx";
+import { formatDateString, roleBadgeClasses, statusBadgeClasses, statuses, statusRoleMap } from "../utils.js";
+import { useFeedback } from "./Feedback.jsx";
+
+function OperatorBadge({ operator }) {
+  if (!operator) {
+    return <span className="text-[11px] italic text-slate-400 dark:text-slate-600">Unassigned</span>;
+  }
+  return (
+    <div className="flex flex-col">
+      <span className="font-semibold text-slate-800 dark:text-slate-200">{operator.name}</span>
+      <span className={`mt-0.5 inline-block self-start rounded px-1 text-[9px] font-semibold uppercase tracking-wider ${roleBadgeClasses(operator.role)}`}>
+        {operator.role}
+      </span>
+    </div>
+  );
+}
+
+function StatusBadge({ status }) {
+  return (
+    <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ring-1 ring-inset ${statusBadgeClasses(status)}`}>
+      {status}
+    </span>
+  );
+}
+
+function StatCard({ title, value, tone }) {
+  return (
+    <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800/80 dark:bg-[#0f172a]">
+      <div>
+        <span className="text-xs font-medium uppercase tracking-wider text-slate-400">{title}</span>
+        <h3 className="mt-0.5 text-xl font-bold text-slate-900 dark:text-white">{value}</h3>
+      </div>
+      <div className={`rounded-lg p-2 ${tone}`}>
+        <div className="h-5 w-5 rounded-full bg-current opacity-90" />
+      </div>
+    </div>
+  );
+}
+
+function PaperEditModal({ paper, open, onClose, exams, universities, operators, onSave }) {
+  const [draft, setDraft] = useState(null);
+  const [roleFilter, setRoleFilter] = useState("all");
+
+  useEffect(() => {
+    if (!paper) {
+      setDraft(null);
+      setRoleFilter("all");
+      return;
+    }
+
+    const expectedRole = statusRoleMap[paper.status];
+    const assignedOperator = operators.find((operator) => operator.id === paper.assignedUserId);
+    const invalidAssignedOperator =
+      paper.status === "Completed" ||
+      (assignedOperator && expectedRole && assignedOperator.role !== expectedRole);
+
+    setDraft({
+      ...paper,
+      assignedUserId: invalidAssignedOperator ? null : paper.assignedUserId,
+    });
+    setRoleFilter(expectedRole ?? "all");
+  }, [paper, operators]);
+
+  if (!open || !draft) {
+    return null;
+  }
+
+  const groupedExams = universities.map((university) => ({
+    university,
+    exams: exams.filter((exam) => exam.universityId === university.id),
+  }));
+  const filteredOperators = operators.filter((operator) => roleFilter === "all" || operator.role === roleFilter);
+
+  const syncDraftForStatus = (nextStatus) => {
+    const expectedRole = statusRoleMap[nextStatus] ?? "all";
+    setRoleFilter(expectedRole);
+    setDraft((current) => {
+      const assignedOperator = operators.find((operator) => operator.id === current.assignedUserId);
+      const shouldClearAssignment =
+        nextStatus === "Completed" ||
+        (assignedOperator && statusRoleMap[nextStatus] && assignedOperator.role !== statusRoleMap[nextStatus]);
+
+      return {
+        ...current,
+        status: nextStatus,
+        assignedUserId: shouldClearAssignment ? null : current.assignedUserId,
+      };
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-md overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-800/80 dark:bg-[#0f172a]">
+        <div className="flex items-center justify-between border-b border-slate-100 p-4 dark:border-slate-800">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800 dark:text-white">Modify Paper Details</h3>
+          <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <form
+          className="space-y-4 p-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            onSave(draft.id, {
+              name: draft.name,
+              code: draft.code,
+              universityId: draft.universityId,
+              examId: draft.examId,
+              date: draft.date,
+              status: draft.status,
+              assignedUserId: draft.assignedUserId || null,
+            });
+          }}
+        >
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-slate-400 dark:text-slate-500">University</label>
+            <select
+              value={draft.universityId}
+              onChange={(event) => {
+                const nextUniversityId = event.target.value;
+                const nextExamId = exams.find((exam) => exam.universityId === nextUniversityId)?.id ?? draft.examId;
+                setDraft((current) => ({ ...current, universityId: nextUniversityId, examId: nextExamId }));
+              }}
+              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none dark:border-slate-700 dark:bg-[#1e293b] dark:text-slate-100"
+            >
+              {universities.map((university) => (
+                <option key={university.id} value={university.id}>
+                  {university.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-slate-400 dark:text-slate-500">Exam Session</label>
+            <select
+              value={draft.examId}
+              onChange={(event) => setDraft((current) => ({ ...current, examId: event.target.value }))}
+              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none dark:border-slate-700 dark:bg-[#1e293b] dark:text-slate-100"
+            >
+              {groupedExams.map(({ university, exams: examItems }) => (
+                <optgroup key={university.id} label={university.name}>
+                  {examItems.map((exam) => (
+                    <option key={exam.id} value={exam.id}>
+                      {exam.name}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-400 dark:text-slate-500">Paper Name</label>
+              <input
+                value={draft.name}
+                onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none dark:border-slate-700 dark:bg-[#1e293b] dark:text-slate-100"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-400 dark:text-slate-500">Paper Code</label>
+              <input
+                value={draft.code}
+                onChange={(event) => setDraft((current) => ({ ...current, code: event.target.value.toUpperCase() }))}
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none dark:border-slate-700 dark:bg-[#1e293b] dark:text-slate-100"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-400 dark:text-slate-500">Exam Date</label>
+              <input
+                type="date"
+                value={draft.date}
+                onChange={(event) => setDraft((current) => ({ ...current, date: event.target.value }))}
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none dark:border-slate-700 dark:bg-[#1e293b] dark:text-slate-100"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-400 dark:text-slate-500">Current Status</label>
+              <select
+                value={draft.status}
+                onChange={(event) => syncDraftForStatus(event.target.value)}
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none dark:border-slate-700 dark:bg-[#1e293b] dark:text-slate-100"
+              >
+                {statuses.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 border-t border-slate-100 pt-3 dark:border-slate-800/80">
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-400 dark:text-slate-500">Assignee Role Filter</label>
+              <select
+                value={roleFilter}
+                onChange={(event) => setRoleFilter(event.target.value)}
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none dark:border-slate-700 dark:bg-[#1e293b] dark:text-slate-100"
+              >
+                <option value="all">-- All Roles --</option>
+                <option value="Typist">Typist</option>
+                <option value="Proof Reader">Proof Reader</option>
+                <option value="Corrector">Corrector</option>
+                <option value="Final Reader">Final Reader</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-400 dark:text-slate-500">Assign Operator</label>
+              <select
+                value={draft.assignedUserId ?? ""}
+                onChange={(event) => setDraft((current) => ({ ...current, assignedUserId: event.target.value || null }))}
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none dark:border-slate-700 dark:bg-[#1e293b] dark:text-slate-100"
+              >
+                <option value="">-- Unassigned --</option>
+                {filteredOperators.map((operator) => (
+                  <option key={operator.id} value={operator.id}>
+                    {operator.name} ({operator.role})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="flex items-center justify-end gap-2 border-t border-slate-100 pt-4 dark:border-slate-800/80">
+            <button type="button" onClick={onClose} className="rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-500 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800">
+              Cancel
+            </button>
+            <button type="submit" className="rounded-lg bg-brand-500 px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-brand-600">
+              Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+export function PapersPage() {
+  const {
+    papers,
+    universities,
+    exams,
+    operators,
+    createPaper,
+    updatePaper,
+    deletePaper,
+    bulkUpdatePapers,
+    bulkDeletePapers,
+    busy,
+    error,
+  } = useWorkspace();
+  const { showToast, confirm } = useFeedback();
+
+  const [filters, setFilters] = useState({
+    universityId: "all",
+    examId: "all",
+    operatorId: "all",
+    search: "",
+    date: "",
+  });
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [page, setPage] = useState(1);
+  const [createForm, setCreateForm] = useState({ name: "", code: "", date: "" });
+  const [bulkStatus, setBulkStatus] = useState("keep");
+  const [bulkRoleFilter, setBulkRoleFilter] = useState("all");
+  const [bulkUserSelector, setBulkUserSelector] = useState("keep");
+  const [editingPaper, setEditingPaper] = useState(null);
+
+  useEffect(() => {
+    setSelectedIds((current) => current.filter((id) => papers.some((paper) => paper.id === id)));
+  }, [papers]);
+
+  const visibleExams = exams.filter((exam) => filters.universityId === "all" || exam.universityId === filters.universityId);
+  const filteredOperators = operators.filter((operator) => bulkRoleFilter === "all" || operator.role === bulkRoleFilter);
+  const filteredPapers = papers.filter((paper) => {
+    const matchesUniversity = filters.universityId === "all" || paper.universityId === filters.universityId;
+    const matchesExam = filters.examId === "all" || paper.examId === filters.examId;
+    const matchesDate = !filters.date || paper.date === filters.date;
+    const matchesOperator =
+      filters.operatorId === "all" ||
+      (filters.operatorId === "unassigned" ? !paper.assignedUserId : paper.assignedUserId === filters.operatorId);
+    const query = filters.search.toLowerCase().trim();
+    const matchesSearch =
+      !query ||
+      paper.name.toLowerCase().includes(query) ||
+      paper.code.toLowerCase().includes(query) ||
+      paper.universityName.toLowerCase().includes(query);
+    return matchesUniversity && matchesExam && matchesDate && matchesOperator && matchesSearch;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(filteredPapers.length / 6));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedItems = filteredPapers.slice((currentPage - 1) * 6, currentPage * 6);
+  const allVisibleSelected = paginatedItems.length > 0 && paginatedItems.every((paper) => selectedIds.includes(paper.id));
+
+  const stats = {
+    total: papers.length,
+    typing: papers.filter((paper) => paper.status === "Typing").length,
+    review: papers.filter((paper) => ["Proof Reading", "Correction", "Final Reading"].includes(paper.status)).length,
+    completed: papers.filter((paper) => paper.status === "Completed").length,
+  };
+
+  const onFilterChange = (key, value) => {
+    setPage(1);
+    setFilters((current) => {
+      if (key === "universityId") {
+        return { ...current, universityId: value, examId: "all" };
+      }
+      return { ...current, [key]: value };
+    });
+  };
+
+  const handleCreatePaper = async (event) => {
+    event.preventDefault();
+    const universityId = filters.universityId !== "all" ? filters.universityId : universities[0]?.id;
+    const resolvedExams = exams.filter((exam) => exam.universityId === universityId);
+    const examId =
+      filters.examId !== "all" && resolvedExams.some((exam) => exam.id === filters.examId) ? filters.examId : resolvedExams[0]?.id;
+
+    if (!universityId || !examId) {
+      showToast("Configure at least one university and associated exam session first", "warning");
+      return;
+    }
+
+    try {
+      await createPaper({
+        name: createForm.name.trim(),
+        code: createForm.code.trim().toUpperCase(),
+        date: createForm.date,
+        universityId,
+        examId,
+        status: "Typing",
+        assignedUserId: null,
+      });
+      showToast(`Successfully registered "${createForm.name.trim()}" to the tracking flow`, "success");
+      setCreateForm((current) => ({ ...current, name: "", code: "" }));
+    } catch (mutationError) {
+      showToast(mutationError.message, "error");
+    }
+  };
+
+  const handleDeletePaper = async (paper) => {
+    const accepted = await confirm(`Are you sure you want to delete "${paper.name}" from tracking records?`);
+    if (!accepted) {
+      return;
+    }
+    try {
+      await deletePaper(paper.id);
+      showToast("Paper record deleted successfully", "info");
+    } catch (mutationError) {
+      showToast(mutationError.message, "error");
+    }
+  };
+
+  const handleBulkUpdate = async () => {
+    if (!selectedIds.length) {
+      return;
+    }
+    const payload = { paperIds: selectedIds };
+    if (bulkStatus !== "keep") {
+      payload.status = bulkStatus;
+    }
+    if (bulkUserSelector !== "keep") {
+      payload.assignedUserId = bulkUserSelector === "unassign" ? null : bulkUserSelector;
+    }
+    try {
+      await bulkUpdatePapers(payload);
+      setSelectedIds([]);
+      setBulkStatus("keep");
+      setBulkUserSelector("keep");
+      showToast("Selected papers have been updated and assigned successfully", "success");
+    } catch (mutationError) {
+      showToast(mutationError.message, "error");
+    }
+  };
+
+  const handleBulkStatusChange = (nextStatus) => {
+    setBulkStatus(nextStatus);
+    if (nextStatus === "keep") {
+      return;
+    }
+
+    const expectedRole = statusRoleMap[nextStatus];
+    if (expectedRole) {
+      setBulkRoleFilter(expectedRole);
+      const selectedOperator = operators.find((operator) => operator.id === bulkUserSelector);
+      if (!selectedOperator || selectedOperator.role !== expectedRole) {
+        setBulkUserSelector("unassign");
+      }
+      return;
+    }
+
+    if (nextStatus === "Completed") {
+      setBulkUserSelector("unassign");
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    const accepted = await confirm(`Confirm removing ${selectedIds.length} selected paper flows from system?`);
+    if (!accepted) {
+      return;
+    }
+    try {
+      await bulkDeletePapers({ paperIds: selectedIds });
+      setSelectedIds([]);
+      showToast("Selected workspace rows deleted successfully", "success");
+    } catch (mutationError) {
+      showToast(mutationError.message, "error");
+    }
+  };
+
+  const handleSaveEdit = async (paperId, payload) => {
+    try {
+      await updatePaper(paperId, payload);
+      setEditingPaper(null);
+      showToast(`Saved changes for "${payload.name}" successfully`, "success");
+    } catch (mutationError) {
+      showToast(mutationError.message, "error");
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800/80 dark:bg-[#0f172a]">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-1 flex-wrap items-center gap-3">
+            <div className="min-w-[170px]">
+              <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Select University</label>
+              <select value={filters.universityId} onChange={(event) => onFilterChange("universityId", event.target.value)} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none dark:border-slate-700 dark:bg-[#1e293b] dark:text-slate-100">
+                <option value="all">-- All Universities --</option>
+                {universities.map((university) => (
+                  <option key={university.id} value={university.id}>
+                    {university.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="min-w-[170px]">
+              <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Select Exam Session</label>
+              <select value={filters.examId} onChange={(event) => onFilterChange("examId", event.target.value)} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none dark:border-slate-700 dark:bg-[#1e293b] dark:text-slate-100">
+                <option value="all">-- All Active Exams --</option>
+                {visibleExams.map((exam) => (
+                  <option key={exam.id} value={exam.id}>
+                    {exam.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="min-w-[160px]">
+              <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Filter Operator</label>
+              <select value={filters.operatorId} onChange={(event) => onFilterChange("operatorId", event.target.value)} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none dark:border-slate-700 dark:bg-[#1e293b] dark:text-slate-100">
+                <option value="all">-- All Operators --</option>
+                <option value="unassigned">-- Unassigned Papers --</option>
+                {operators.map((operator) => (
+                  <option key={operator.id} value={operator.id}>
+                    {operator.name} ({operator.role})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="min-w-[130px]">
+              <div className="mb-1 flex items-center justify-between">
+                <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Exam Date</label>
+                <button type="button" onClick={() => onFilterChange("date", "")} className="text-[10px] font-semibold text-brand-500 hover:underline">
+                  Clear
+                </button>
+              </div>
+              <input type="date" value={filters.date} onChange={(event) => onFilterChange("date", event.target.value)} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-800 focus:outline-none dark:border-slate-700 dark:bg-[#1e293b] dark:text-slate-100" />
+            </div>
+
+            <div className="min-w-[150px]">
+              <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Keyword Search</label>
+              <input value={filters.search} onChange={(event) => onFilterChange("search", event.target.value)} placeholder="Search Code, Name..." className="w-full rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none dark:border-slate-700 dark:bg-[#1e293b] dark:text-slate-100" />
+            </div>
+          </div>
+
+          <div className="border-t border-slate-100 pt-3 text-right dark:border-slate-800 md:border-t-0 md:pt-0">
+            <span className="block text-xs text-slate-400">Total matching papers</span>
+            <span className="text-sm font-bold text-slate-800 dark:text-brand-400">{filteredPapers.length}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatCard title="Total Papers" value={stats.total} tone="bg-blue-50 text-blue-500 dark:bg-blue-950/40" />
+        <StatCard title="Typing Status" value={stats.typing} tone="bg-blue-50 text-blue-500 dark:bg-blue-950/40" />
+        <StatCard title="In Evaluation" value={stats.review} tone="bg-purple-50 text-purple-500 dark:bg-purple-950/40" />
+        <StatCard title="Published" value={stats.completed} tone="bg-emerald-50 text-emerald-500 dark:bg-emerald-950/40" />
+      </div>
+
+      <div className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#0f172a]">
+        <div className="rounded-xl bg-slate-50/50 p-4 dark:bg-slate-900/30">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 animate-pulse rounded-full bg-brand-500" />
+              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800 dark:text-white">Register New Paper Flow</h3>
+            </div>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Future assignment timing starts automatically when an operator is assigned</span>
+          </div>
+          <form onSubmit={handleCreatePaper} className="grid grid-cols-1 items-end gap-3 md:grid-cols-3">
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-400 dark:text-slate-500">Paper Name *</label>
+              <input required value={createForm.name} onChange={(event) => setCreateForm((current) => ({ ...current, name: event.target.value }))} placeholder="e.g. Advanced Calculus" className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none dark:border-slate-700 dark:bg-[#1e293b] dark:text-slate-100" />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-400 dark:text-slate-500">Paper Code *</label>
+              <input required value={createForm.code} onChange={(event) => setCreateForm((current) => ({ ...current, code: event.target.value.toUpperCase() }))} placeholder="e.g. MAT-401" className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none dark:border-slate-700 dark:bg-[#1e293b] dark:text-slate-100" />
+            </div>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <label className="mb-1 block text-xs font-semibold text-slate-400 dark:text-slate-500">Exam Date *</label>
+                <input required type="date" value={createForm.date} onChange={(event) => setCreateForm((current) => ({ ...current, date: event.target.value }))} className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-800 focus:outline-none dark:border-slate-700 dark:bg-[#1e293b] dark:text-slate-100" />
+              </div>
+              <button type="submit" disabled={busy} className="h-8 w-28 self-end rounded-lg bg-slate-900 px-3 text-xs font-semibold text-white shadow-md transition-all hover:bg-slate-800 disabled:opacity-50 dark:bg-brand-600 dark:hover:bg-brand-500">
+                Add Paper
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#0f172a]">
+        {selectedIds.length > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-brand-100 bg-brand-50 px-4 py-2.5 dark:border-brand-900/50 dark:bg-brand-950/30">
+            <div className="text-xs font-semibold text-brand-700 dark:text-brand-400">{selectedIds.length} selected</div>
+            <div className="flex flex-wrap items-center gap-4 text-xs">
+              <div className="flex items-center gap-1.5">
+                <span className="font-semibold text-slate-500 dark:text-slate-400">Move to Status</span>
+                <select value={bulkStatus} onChange={(event) => handleBulkStatusChange(event.target.value)} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs dark:border-slate-700 dark:bg-[#1e293b] dark:text-slate-100">
+                  <option value="keep">-- Keep Status --</option>
+                  {statuses.map((status) => (
+                    <option key={status} value={status}>
+                      {status}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="font-semibold text-slate-500 dark:text-slate-400">Role</span>
+                <select value={bulkRoleFilter} onChange={(event) => setBulkRoleFilter(event.target.value)} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs dark:border-slate-700 dark:bg-[#1e293b] dark:text-slate-100">
+                  <option value="all">-- All Roles --</option>
+                  <option value="Typist">Typist</option>
+                  <option value="Proof Reader">Proof Reader</option>
+                  <option value="Corrector">Corrector</option>
+                  <option value="Final Reader">Final Reader</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="font-semibold text-slate-500 dark:text-slate-400">Operator</span>
+                <select value={bulkUserSelector} onChange={(event) => setBulkUserSelector(event.target.value)} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs dark:border-slate-700 dark:bg-[#1e293b] dark:text-slate-100">
+                  <option value="keep">-- Keep Assigned --</option>
+                  <option value="unassign">-- Unassign Operator --</option>
+                  {filteredOperators.map((operator) => (
+                    <option key={operator.id} value={operator.id}>
+                      {operator.name} ({operator.role})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={handleBulkUpdate} className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-brand-700">
+                  Apply
+                </button>
+                <button type="button" onClick={handleBulkDelete} className="rounded-lg bg-rose-50 px-2.5 py-1.5 text-xs font-semibold text-rose-600 transition-all hover:bg-rose-100 dark:bg-rose-950/20 dark:text-rose-400 dark:hover:bg-rose-950/40">
+                  Delete Selected
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-left">
+            <thead className="border-b border-slate-100 bg-slate-50/60 text-xs uppercase tracking-wider text-slate-400 dark:border-slate-800/80 dark:bg-slate-900/30 dark:text-slate-500">
+              <tr>
+                <th className="px-4 py-3 text-center">
+                  <input
+                    type="checkbox"
+                    checked={allVisibleSelected}
+                    onChange={(event) => {
+                      if (event.target.checked) {
+                        setSelectedIds((current) => [...new Set([...current, ...paginatedItems.map((paper) => paper.id)])]);
+                      } else {
+                        setSelectedIds((current) => current.filter((id) => !paginatedItems.some((paper) => paper.id === id)));
+                      }
+                    }}
+                  />
+                </th>
+                <th className="px-4 py-3">Paper</th>
+                <th className="px-4 py-3">University / Exam</th>
+                <th className="px-4 py-3">Exam Date</th>
+                <th className="px-4 py-3">Operator</th>
+                <th className="px-4 py-3 text-center">Status</th>
+                <th className="px-4 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-sm dark:divide-slate-800/50">
+              {paginatedItems.map((paper) => {
+                const operator = operators.find((item) => item.id === paper.assignedUserId);
+                const exam = exams.find((item) => item.id === paper.examId);
+                const selected = selectedIds.includes(paper.id);
+                const tooltip = exam ? `S: ${formatDateString(exam.startDate)} | E: ${formatDateString(exam.endDate)}\nRecv: ${formatDateString(exam.receiveDate)} | Due: ${formatDateString(exam.dueDate)}` : "No exam bounds set";
+
+                return (
+                  <tr key={paper.id} className={`group transition-colors hover:bg-slate-50/70 dark:hover:bg-slate-800/40 ${selected ? "bg-brand-50/10 dark:bg-brand-950/10" : ""}`}>
+                    <td className="px-4 py-2.5 text-center">
+                      <input type="checkbox" checked={selected} onChange={() => setSelectedIds((current) => current.includes(paper.id) ? current.filter((id) => id !== paper.id) : [...current, paper.id])} />
+                    </td>
+                    <td className="px-4 py-2.5 font-medium text-slate-900 dark:text-white">
+                      <button type="button" onClick={() => setEditingPaper(paper)} className="block text-left text-sm font-semibold hover:text-brand-500 dark:hover:text-brand-400">
+                        {paper.name}
+                      </button>
+                      <span className="mt-0.5 block font-mono text-[10px] text-slate-400 dark:text-slate-500">{paper.code}</span>
+                    </td>
+                    <td className="px-4 py-2.5 text-xs text-slate-600 dark:text-slate-300">
+                      <span className="block max-w-[170px] truncate font-semibold" title={paper.universityName}>
+                        {paper.universityName}
+                      </span>
+                      <span className="block max-w-[170px] truncate text-[10px] text-slate-400 underline decoration-dotted dark:text-slate-500" title={tooltip}>
+                        {paper.examName}
+                      </span>
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2.5 text-xs text-slate-500 dark:text-slate-400">{formatDateString(paper.date)}</td>
+                    <td className="px-4 py-2.5 text-xs">
+                      <OperatorBadge operator={operator} />
+                    </td>
+                    <td className="px-4 py-2.5 text-center text-xs">
+                      <StatusBadge status={paper.status} />
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <div className="flex items-center justify-end gap-1.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
+                        <button type="button" onClick={() => setEditingPaper(paper)} className="rounded p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-brand-500 dark:hover:bg-slate-800 dark:hover:text-brand-400">
+                          Edit
+                        </button>
+                        <button type="button" onClick={() => handleDeletePaper(paper)} className="rounded p-1 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-500 dark:hover:bg-rose-950/30">
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {!filteredPapers.length && (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">No papers match selected criteria</h3>
+            <p className="mt-1 max-w-sm text-xs text-slate-400">Try switching filters, clearing keywords, or register a new university exam paper flow using the registration form above.</p>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/50 p-3 dark:border-slate-800/80 dark:bg-slate-900/20">
+          <div className="text-xs text-slate-400">
+            Showing <span className="font-semibold text-slate-700 dark:text-slate-300">{filteredPapers.length ? (currentPage - 1) * 6 + 1 : 0}</span> to{" "}
+            <span className="font-semibold text-slate-700 dark:text-slate-300">{Math.min(currentPage * 6, filteredPapers.length)}</span> of{" "}
+            <span className="font-semibold text-slate-700 dark:text-slate-300">{filteredPapers.length}</span> papers
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button type="button" disabled={currentPage === 1} onClick={() => setPage((current) => Math.max(1, current - 1))} className="rounded-lg border border-slate-200 bg-white p-1.5 text-xs font-medium text-slate-500 transition-colors disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700">
+              Prev
+            </button>
+            <span className="px-2 text-xs font-semibold text-slate-600 dark:text-slate-300">Page {currentPage} of {totalPages}</span>
+            <button type="button" disabled={currentPage === totalPages} onClick={() => setPage((current) => Math.min(totalPages, current + 1))} className="rounded-lg border border-slate-200 bg-white p-1.5 text-xs font-medium text-slate-500 transition-colors disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700">
+              Next
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {error && <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/20 dark:text-rose-300">{error}</div>}
+
+      <PaperEditModal paper={editingPaper} open={Boolean(editingPaper)} onClose={() => setEditingPaper(null)} exams={exams} universities={universities} operators={operators} onSave={handleSaveEdit} />
+    </div>
+  );
+}

@@ -1,0 +1,2393 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paper Flow Workspace</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js for High-Fidelity Interactive Visualizations -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+              900: '#0c4a6e',
+            },
+            slate: {
+              950: '#0b1329',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Inter Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    /* Custom scrollbar for dense data tables */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .dark ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    .dark ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-200">
+
+  <!-- Main Grid Wrapper -->
+  <div class="flex flex-1 overflow-hidden h-screen">
+
+    <!-- COLLAPSIBLE SIDEBAR -->
+    <aside id="sidebar" class="bg-white dark:bg-[#0f172a] border-r border-slate-200 dark:border-slate-800 flex flex-col transition-all duration-300 w-64 z-20 shrink-0">
+      <!-- Sidebar Header -->
+      <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-3 overflow-hidden">
+          <div class="p-2 bg-brand-500 text-white rounded-lg shrink-0">
+            <!-- Logo SVG (Exam control desk icon) -->
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+          </div>
+          <div class="sidebar-text transition-opacity duration-300">
+            <h1 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Paper Flow</h1>
+            <p class="text-sm font-bold text-slate-900 dark:text-white truncate">Exam Control Desk</p>
+          </div>
+        </div>
+        <button onclick="toggleSidebar()" class="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" title="Collapse Sidebar">
+          <svg id="collapse-icon" class="w-4 h-4 transition-transform duration-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Navigation Links -->
+      <nav class="p-3 space-y-1 flex-1 overflow-y-auto">
+        <button onclick="switchTab('entry')" id="nav-entry" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors bg-brand-50 text-brand-600 dark:bg-brand-950/40 dark:text-brand-500">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+          </svg>
+          <span class="sidebar-text truncate">Paper Entry</span>
+        </button>
+
+        <button onclick="switchTab('reports')" id="nav-reports" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-100">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z"></path>
+          </svg>
+          <span class="sidebar-text truncate">Reports & KPIs</span>
+        </button>
+
+        <button onclick="switchTab('config')" id="nav-config" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-100">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924-1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+          </svg>
+          <span class="sidebar-text truncate">Config Masters</span>
+        </button>
+      </nav>
+
+      <!-- Sidebar Footer (Logged in User) -->
+      <div class="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 sidebar-text">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-full bg-brand-500 text-white flex items-center justify-center font-bold text-xs uppercase shadow-inner">
+            AD
+          </div>
+          <div class="overflow-hidden">
+            <h4 class="text-xs font-semibold text-slate-400">Admin</h4>
+            <p class="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">Paper Tracker Admin</p>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CONTENT WORKSPACE AREA -->
+    <main class="flex-1 flex flex-col overflow-hidden bg-slate-50 dark:bg-[#020617]">
+      
+      <!-- TOP NAVIGATION HEADER -->
+      <header class="h-14 bg-white dark:bg-[#0f172a] border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 z-10 shrink-0">
+        <!-- Breadcrumbs & Status -->
+        <div class="flex items-center gap-3">
+          <span class="text-xs text-brand-600 dark:text-brand-500 font-semibold uppercase tracking-wider hidden sm:inline-block">University Paper Flow</span>
+          <span class="text-slate-300 dark:text-slate-700 hidden sm:inline-block">/</span>
+          <h2 id="workspace-title" class="text-sm font-semibold text-slate-700 dark:text-slate-200">Paper Tracking Workspace</h2>
+        </div>
+
+        <!-- Right Utilities -->
+        <div class="flex items-center gap-3">
+          <!-- Quick Status Reset -->
+          <button onclick="resetMockData()" class="px-2.5 py-1.5 text-xs text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md transition-all flex items-center gap-1.5" title="Restore Default Mock Data">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 15.89M9 11l4 4m-4 0l4-4"></path>
+            </svg>
+            <span>Reset Data</span>
+          </button>
+
+          <!-- Theme Toggle -->
+          <button onclick="toggleTheme()" class="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors" title="Toggle Light/Dark Theme">
+            <svg id="theme-sun" class="w-5 h-5 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.364l-.707.707M12 8a4 4 0 100 8 4 4 0 000-8z"></path>
+            </svg>
+            <svg id="theme-moon" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+            </svg>
+          </button>
+
+          <span class="text-xs text-slate-400 hidden md:inline bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md">
+            Paper Tracker Admin (<span class="text-slate-600 dark:text-slate-300">admin</span>)
+          </span>
+
+          <button onclick="logoutMock()" class="px-3 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg transition-all shadow-sm">
+            Logout
+          </button>
+        </div>
+      </header>
+
+      <!-- VIEWPORTS CONTAINER -->
+      <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
+        
+        <!-- ==================== TAB 1: PAPER ENTRY (MAIN WORKSPACE) ==================== -->
+        <div id="tab-content-entry" class="space-y-4">
+          
+          <!-- THE SMART FILTER BAR -->
+          <div class="bg-white dark:bg-[#0f172a] rounded-xl border border-slate-200 dark:border-slate-800/80 shadow-sm p-4">
+            <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+              
+              <!-- Left: Dropdowns & Filters -->
+              <div class="flex-1 flex flex-wrap items-center gap-3">
+                <!-- Select University -->
+                <div class="w-full sm:w-auto min-w-[170px]">
+                  <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Select University</label>
+                  <select id="filter-university" onchange="handleUniversityFilterChange()" class="w-full bg-slate-50 dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-brand-500 focus:border-brand-500 focus:outline-none transition-all">
+                    <option value="all">-- All Universities --</option>
+                  </select>
+                </div>
+
+                <!-- Select Exam -->
+                <div class="w-full sm:w-auto min-w-[170px]">
+                  <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Select Exam Session</label>
+                  <select id="filter-exam" onchange="applyFilters()" class="w-full bg-slate-50 dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-brand-500 focus:border-brand-500 focus:outline-none transition-all">
+                    <option value="all">-- All Active Exams --</option>
+                  </select>
+                </div>
+
+                <!-- Filter Assigned Operator -->
+                <div class="w-full sm:w-auto min-w-[160px]">
+                  <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Filter Operator</label>
+                  <select id="filter-operator" onchange="applyFilters()" class="w-full bg-slate-50 dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-brand-500 focus:border-brand-500 focus:outline-none transition-all">
+                    <option value="all">-- All Operators --</option>
+                    <option value="unassigned">-- Unassigned Papers --</option>
+                  </select>
+                </div>
+
+                <!-- Filter Exam Date -->
+                <div class="w-full sm:w-auto min-w-[130px]">
+                  <div class="flex justify-between items-center mb-1">
+                    <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Exam Date</label>
+                    <button onclick="clearDateFilter()" class="text-[10px] text-brand-500 hover:underline hover:text-brand-600 dark:text-brand-400 font-semibold" title="Clear date filter">Clear</button>
+                  </div>
+                  <input type="date" id="filter-date" onchange="applyFilters()" class="w-full bg-slate-50 dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs focus:ring-1 focus:ring-brand-500 focus:border-brand-500 focus:outline-none transition-all" />
+                </div>
+
+                <!-- Live Search -->
+                <div class="w-full sm:w-auto min-w-[150px]">
+                  <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Keyword Search</label>
+                  <div class="relative">
+                    <input type="text" id="filter-search" oninput="applyFilters()" placeholder="Search Code, Name..." class="w-full bg-slate-50 dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-lg pl-8 pr-2.5 py-1.5 text-xs focus:ring-1 focus:ring-brand-500 focus:border-brand-500 focus:outline-none transition-all" />
+                    <svg class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Right: Total Matching Papers -->
+              <div class="flex items-center justify-between md:justify-end gap-4 shrink-0 border-t md:border-t-0 pt-3 md:pt-0 border-slate-100 dark:border-slate-800 text-right">
+                <div>
+                  <span class="text-xs text-slate-400 block">Total matching papers</span>
+                  <span id="stat-visible-papers" class="text-sm font-bold text-slate-800 dark:text-brand-400">0</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- QUICK INSIGHT CARDS -->
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Total Papers -->
+            <div class="bg-white dark:bg-[#0f172a] p-3 rounded-xl border border-slate-200 dark:border-slate-800/80 shadow-sm flex items-center justify-between">
+              <div>
+                <span class="text-xs text-slate-400 font-medium uppercase tracking-wider">Total Papers</span>
+                <h3 id="stat-total" class="text-xl font-bold mt-0.5 text-slate-900 dark:text-white">0</h3>
+              </div>
+              <div class="p-2 bg-blue-50 dark:bg-blue-950/40 text-blue-500 rounded-lg">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2.5 2.5 0 00-2.5-2.5H15"></path>
+                </svg>
+              </div>
+            </div>
+
+            <!-- Typing Status -->
+            <div class="bg-white dark:bg-[#0f172a] p-3 rounded-xl border border-slate-200 dark:border-slate-800/80 shadow-sm flex items-center justify-between">
+              <div>
+                <span class="text-xs text-slate-400 font-medium uppercase tracking-wider">Typing</span>
+                <h3 id="stat-entered" class="text-xl font-bold mt-0.5 text-slate-900 dark:text-white">0</h3>
+              </div>
+              <div class="p-2 bg-blue-50 dark:bg-blue-950/40 text-blue-500 rounded-lg">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                </svg>
+              </div>
+            </div>
+
+            <!-- In Review -->
+            <div class="bg-white dark:bg-[#0f172a] p-3 rounded-xl border border-slate-200 dark:border-slate-800/80 shadow-sm flex items-center justify-between">
+              <div>
+                <span class="text-xs text-slate-400 font-medium uppercase tracking-wider">In Review</span>
+                <h3 id="stat-evaluation" class="text-xl font-bold mt-0.5 text-slate-900 dark:text-white">0</h3>
+              </div>
+              <div class="p-2 bg-purple-50 dark:bg-purple-950/40 text-purple-500 rounded-lg">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+              </div>
+            </div>
+
+            <!-- Completed Status -->
+            <div class="bg-white dark:bg-[#0f172a] p-3 rounded-xl border border-slate-200 dark:border-slate-800/80 shadow-sm flex items-center justify-between">
+              <div>
+                <span class="text-xs text-slate-400 font-medium uppercase tracking-wider">Completed</span>
+                <h3 id="stat-published" class="text-xl font-bold mt-0.5 text-slate-900 dark:text-white">0</h3>
+              </div>
+              <div class="p-2 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-500 rounded-lg">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- ALWAYS OPEN NEW PAPER PANEL -->
+          <div id="add-paper-container" class="bg-white dark:bg-[#0f172a] rounded-xl border border-slate-200 dark:border-slate-800/80 shadow-sm">
+            <div class="p-4 bg-slate-50/50 dark:bg-slate-900/30 rounded-xl">
+              <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                  <div class="w-2 h-2 rounded-full bg-brand-500 animate-pulse"></div>
+                  <h3 class="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wider">Paper Registration Desk</h3>
+                  <span class="text-[10px] text-slate-400 dark:text-slate-500 font-medium hidden sm:inline">(Auto-assigns to your currently filtered university and active exam session)</span>
+                </div>
+              </div>
+
+              <form id="paper-form" onsubmit="handleFormSubmit(event)" class="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+                <!-- Paper Name -->
+                <div class="md:col-span-1">
+                  <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Paper Name *</label>
+                  <input type="text" id="form-paper-name" required placeholder="e.g. Advanced Calculus" class="w-full bg-white dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all" />
+                </div>
+
+                <!-- Paper Code -->
+                <div class="md:col-span-1">
+                  <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Paper Code *</label>
+                  <input type="text" id="form-paper-code" required placeholder="e.g. MAT-401" class="w-full bg-white dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all" />
+                </div>
+
+                <!-- Exam Date & Submit Group -->
+                <div class="md:col-span-1 flex gap-2">
+                  <div class="flex-1">
+                    <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Exam Date *</label>
+                    <input type="date" id="form-exam-date" required class="w-full bg-white dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all" />
+                  </div>
+                  <button type="submit" class="bg-slate-900 hover:bg-slate-800 dark:bg-brand-600 dark:hover:bg-brand-500 text-white px-3 rounded-lg text-xs font-semibold h-8 flex items-center justify-center shadow-md shrink-0 self-end w-28">
+                    Add Paper
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- THE PRIMARY WORKSPACE DATA TABLE CARD -->
+          <div class="bg-white dark:bg-[#0f172a] rounded-xl border border-slate-200 dark:border-slate-800/80 shadow-sm overflow-hidden flex flex-col">
+            
+            <!-- SMART CONTEXT BAR -->
+            <div id="bulk-action-bar" class="bg-brand-50 dark:bg-brand-950/30 border-b border-brand-100 dark:border-brand-900/50 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 transition-all duration-300 hidden">
+              <div class="flex items-center gap-2 text-xs font-semibold text-brand-700 dark:text-brand-400 shrink-0">
+                <span class="w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span>
+                <span id="bulk-selected-count">0 items selected</span>
+              </div>
+
+              <!-- Quick Status Transitions & Assignments -->
+              <div class="flex flex-wrap items-center gap-4 text-xs">
+                <!-- Status Updater -->
+                <div class="flex items-center gap-1.5">
+                  <label class="text-slate-500 dark:text-slate-400 font-medium">Status:</label>
+                  <select id="bulk-status-selector" class="bg-white dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all">
+                    <option value="keep">-- Keep Existing --</option>
+                    <option value="Typing">Typing</option>
+                    <option value="Proof Reading">Proof Reading</option>
+                    <option value="Correction">Correction</option>
+                    <option value="Final Reading">Final Reading</option>
+                    <option value="Completed">Completed</option>
+                  </select>
+                </div>
+
+                <!-- Assignment Role Selector -->
+                <div class="flex items-center gap-1.5">
+                  <label class="text-slate-500 dark:text-slate-400 font-medium">Assign Role:</label>
+                  <select id="bulk-role-selector" onchange="updateBulkUserDropdown()" class="bg-white dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all">
+                    <option value="all">-- All Roles --</option>
+                    <option value="Typist">Typist</option>
+                    <option value="Proof Reader">Proof Reader</option>
+                    <option value="Corrector">Corrector</option>
+                    <option value="Final Reader">Final Reader</option>
+                  </select>
+                </div>
+
+                <!-- Assignment Operator Selector -->
+                <div class="flex items-center gap-1.5">
+                  <label class="text-slate-500 dark:text-slate-400 font-medium">Operator:</label>
+                  <select id="bulk-user-selector" class="bg-white dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all">
+                    <option value="keep">-- Keep Assigned --</option>
+                    <option value="unassign">-- Unassign Operator --</option>
+                  </select>
+                </div>
+
+                <!-- Apply Updates -->
+                <div class="flex items-center gap-2">
+                  <button onclick="executeBulkUpdate()" class="bg-brand-600 hover:bg-brand-700 text-white text-xs px-3 py-1.5 rounded-lg font-semibold transition-all shadow-sm">
+                    Apply to Selected
+                  </button>
+                  <button onclick="executeBulkDeleteBtn()" class="bg-rose-50 dark:bg-rose-950/20 hover:bg-rose-100 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-xs px-2.5 py-1.5 rounded-lg font-semibold transition-all flex items-center gap-1" title="Delete Selected">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7"></path>
+                    </svg>
+                    <span>Delete</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Table Container -->
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="bg-slate-50/50 dark:bg-slate-900/40 border-b border-slate-100 dark:border-slate-800/80 text-xs text-slate-400 uppercase tracking-wider font-semibold">
+                    <th class="py-3 px-4 w-12 text-center">
+                      <input type="checkbox" id="checkbox-select-all" onchange="toggleSelectAll(this)" class="rounded text-brand-600 focus:ring-brand-500 w-4 h-4 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700" />
+                    </th>
+                    <th class="py-3 px-4 font-semibold">Paper Info & Code</th>
+                    <th class="py-3 px-4 font-semibold">Academic Schedule</th>
+                    <th class="py-3 px-4 font-semibold">Exam Date</th>
+                    <th class="py-3 px-4 font-semibold">Assigned Operator</th>
+                    <th class="py-3 px-4 font-semibold text-center">Status</th>
+                    <th class="py-3 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="papers-table-body" class="divide-y divide-slate-100 dark:divide-slate-800/50 text-sm">
+                  <!-- Generated dynamically -->
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Placeholder Screen if Empty -->
+            <div id="table-empty-state" class="py-12 flex flex-col items-center justify-center text-center hidden">
+              <div class="p-3 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-400 mb-3">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0a2 2 0 01-2 2H6a2 2 0 01-2-2m16 0H4m16 4v1a2 2 0 01-2 2H6a2 2 0 01-2-2v-1m16 0H4"></path>
+                </svg>
+              </div>
+              <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-300">No papers match selected criteria</h3>
+              <p class="text-xs text-slate-400 max-w-sm mt-1">Try switching filters, clearing keywords, or register a new university exam paper flow using the registration form above.</p>
+            </div>
+
+            <!-- TABLE PAGINATION FOOTER -->
+            <div class="p-3 bg-slate-50/50 dark:bg-slate-900/20 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+              <div class="text-xs text-slate-400">
+                Showing <span id="paginated-start" class="font-semibold text-slate-700 dark:text-slate-300">0</span> to 
+                <span id="paginated-end" class="font-semibold text-slate-700 dark:text-slate-300">0</span> of 
+                <span id="paginated-total" class="font-semibold text-slate-700 dark:text-slate-300">0</span> papers
+              </div>
+
+              <!-- Compact Controls -->
+              <div class="flex items-center gap-1.5">
+                <button onclick="changePage(-1)" id="btn-prev-page" class="p-1.5 text-xs font-medium rounded-lg text-slate-500 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40 disabled:hover:bg-white dark:disabled:hover:bg-slate-800 transition-colors">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path>
+                  </svg>
+                </button>
+                <span class="text-xs font-semibold text-slate-600 dark:text-slate-300 px-2" id="pagination-indicator">
+                  Page 1 of 1
+                </span>
+                <button onclick="changePage(1)" id="btn-next-page" class="p-1.5 text-xs font-medium rounded-lg text-slate-500 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40 disabled:hover:bg-white dark:disabled:hover:bg-slate-800 transition-colors">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- ==================== TAB 2: REPORTS & KPIS (UPGRADED WITH CHARTS & AUDIT WORKSPACE!) ==================== -->
+        <div id="tab-content-reports" class="space-y-6 hidden">
+          
+          <!-- Report Filter Toolbar -->
+          <div class="bg-white dark:bg-[#0f172a] rounded-xl border border-slate-200 dark:border-slate-800/80 p-4 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div>
+              <h3 class="text-base font-bold text-slate-900 dark:text-white">Exam Session Performance Ledger</h3>
+              <p class="text-xs text-slate-400">Interactive charts, operator productivity metrics, and bottleneck analysis.</p>
+            </div>
+            <!-- Session Filter for Charts -->
+            <div class="w-full sm:w-64">
+              <label class="block text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Focus Analytics Session</label>
+              <select id="report-session-filter" onchange="renderReportsTab()" class="w-full bg-slate-50 dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all">
+                <option value="all">-- All Exam Sessions --</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Charts Row -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            <!-- Pie/Donut Chart Container -->
+            <div class="bg-white dark:bg-[#0f172a] rounded-xl border border-slate-200 dark:border-slate-800/80 p-4 shadow-sm lg:col-span-5 flex flex-col justify-between h-[340px]">
+              <div class="mb-2">
+                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Exam Status Allocation</h4>
+                <p class="text-[10px] text-slate-400">Proportion of papers inside distinct stages</p>
+              </div>
+              <div class="flex-1 relative flex items-center justify-center overflow-hidden">
+                <!-- Fallback info displayed behind canvas when no items exist -->
+                <canvas id="reportPieChart" class="max-h-[220px] max-w-full"></canvas>
+              </div>
+            </div>
+
+            <!-- Bar/Line Workload Chart Container -->
+            <div class="bg-white dark:bg-[#0f172a] rounded-xl border border-slate-200 dark:border-slate-800/80 p-4 shadow-sm lg:col-span-7 flex flex-col justify-between h-[340px]">
+              <div class="mb-2 flex justify-between items-center">
+                <div>
+                  <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Workload Stage Saturation</h4>
+                  <p class="text-[10px] text-slate-400">Total volume of papers currently residing inside each phase</p>
+                </div>
+              </div>
+              <div class="flex-1 relative flex items-center justify-center overflow-hidden">
+                <canvas id="reportBarChart" class="max-h-[220px] max-w-full"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Top Performer Per Stage Card Grid (NEW!) -->
+          <div class="space-y-3">
+            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Operator High-Throughput Champions</h4>
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-3" id="top-champions-grid">
+              <!-- Dynamically populated from JS with performer details -->
+            </div>
+          </div>
+
+          <!-- Operator Workload Productivity Ledger (NEW!) -->
+          <div class="bg-white dark:bg-[#0f172a] rounded-xl border border-slate-200 dark:border-slate-800/80 shadow-sm overflow-hidden">
+            <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <div>
+                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Operator Productivity Metrics</h4>
+                <p class="text-[10px] text-slate-400">Activity and completion throughput by workspace users</p>
+              </div>
+              <span class="text-xs font-semibold px-2 py-0.5 bg-brand-500/10 text-brand-500 rounded" id="operator-active-count">0 Operators Loaded</span>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="bg-slate-50/50 dark:bg-slate-900/40 border-b border-slate-100 dark:border-slate-800/80 text-[11px] text-slate-400 uppercase tracking-wider">
+                    <th class="py-2.5 px-4 font-semibold">Operator</th>
+                    <th class="py-2.5 px-4 font-semibold">Role Bound</th>
+                    <th class="py-2.5 px-4 font-semibold text-center">Active Tasks</th>
+                    <th class="py-2.5 px-4 font-semibold text-center">Completed Tasks</th>
+                    <th class="py-2.5 px-4 font-semibold text-center">Total Load</th>
+                    <th class="py-2.5 px-4 font-semibold text-right">Throughput Rate</th>
+                  </tr>
+                </thead>
+                <tbody id="operator-report-table" class="divide-y divide-slate-100 dark:divide-slate-800/50 text-xs">
+                  <!-- Injected via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Paper-wise Timeline & Stage Audit (NEW!) -->
+          <div class="bg-white dark:bg-[#0f172a] rounded-xl border border-slate-200 dark:border-slate-800/80 shadow-sm overflow-hidden">
+            <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+              <div>
+                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Detailed Paper Lifecycle Audit</h4>
+                <p class="text-[10px] text-slate-400">Step-by-step progress tracking and priority alert verification</p>
+              </div>
+              <div class="relative w-full sm:w-64">
+                <input type="text" id="report-paper-search" oninput="renderPaperTimelineAudit()" placeholder="Search paper code/name..." class="w-full bg-slate-50 dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-lg pl-8 pr-2.5 py-1 text-xs focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all" />
+                <svg class="w-3 h-3 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+              </div>
+            </div>
+            <div class="p-2 divide-y divide-slate-100 dark:divide-slate-800/50" id="paper-audit-timeline-container">
+              <!-- Injected via JS -->
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ==================== TAB 3: CONFIG MASTERS ==================== -->
+        <div id="tab-content-config" class="grid grid-cols-1 lg:grid-cols-3 gap-6 hidden">
+          
+          <!-- Manage Universities -->
+          <div class="bg-white dark:bg-[#0f172a] rounded-xl border border-slate-200 dark:border-slate-800/80 shadow-sm p-5 space-y-4 flex flex-col justify-between h-fit">
+            <div>
+              <div class="flex justify-between items-center mb-4">
+                <div>
+                  <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Universities</h3>
+                  <p class="text-xs text-slate-400">Add or remove recognized academic entities.</p>
+                </div>
+                <span id="uni-total-badge" class="bg-brand-50 dark:bg-brand-950/40 text-brand-600 dark:text-brand-400 text-xs px-2 py-1 rounded font-bold">0 Active</span>
+              </div>
+
+              <form onsubmit="handleConfigAdd(event, 'university')" class="flex gap-2 mb-4">
+                <input type="text" id="config-uni-input" required placeholder="New University..." class="flex-1 bg-slate-50 dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all" />
+                <button type="submit" class="bg-brand-500 hover:bg-brand-600 text-white text-xs px-3 py-1.5 rounded-lg font-semibold transition-all shrink-0">
+                  Add
+                </button>
+              </form>
+            </div>
+
+            <div class="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-2 max-h-[300px] overflow-y-auto">
+              <ul id="config-uni-list" class="space-y-1 divide-y divide-slate-100 dark:divide-slate-800/40">
+                <!-- Loaded Dynamically -->
+              </ul>
+            </div>
+          </div>
+
+          <!-- Manage Exam Sessions -->
+          <div class="bg-white dark:bg-[#0f172a] rounded-xl border border-slate-200 dark:border-slate-800/80 shadow-sm p-5 space-y-4 flex flex-col justify-between h-fit">
+            <div>
+              <div class="flex justify-between items-center mb-4">
+                <div>
+                  <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Exam Sessions</h3>
+                  <p class="text-xs text-slate-400">Define university-linked active semester schedules.</p>
+                </div>
+                <span id="exam-total-badge" class="bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 text-xs px-2 py-1 rounded font-bold">0 Active</span>
+              </div>
+
+              <form onsubmit="handleConfigAdd(event, 'exam')" class="space-y-2.5 mb-4 bg-slate-50/50 dark:bg-slate-900/30 p-3 rounded-lg border border-slate-100 dark:border-slate-800/60">
+                <!-- University selector -->
+                <div>
+                  <label class="block text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Link to University *</label>
+                  <select id="config-exam-uni" required class="w-full bg-white dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all">
+                    <!-- Loaded dynamically -->
+                  </select>
+                </div>
+
+                <!-- Session Name -->
+                <div>
+                  <label class="block text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Session Name *</label>
+                  <input type="text" id="config-exam-name" required placeholder="e.g. Spring 2026 Semester" class="w-full bg-white dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all" />
+                </div>
+
+                <!-- Start Date & End Date Grid -->
+                <div class="grid grid-cols-2 gap-2">
+                  <div>
+                    <label class="block text-[9px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Start Date</label>
+                    <input type="date" id="config-exam-start" class="w-full bg-white dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-lg px-1.5 py-1 text-[11px] focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all" />
+                  </div>
+                  <div>
+                    <label class="block text-[9px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">End Date</label>
+                    <input type="date" id="config-exam-end" class="w-full bg-white dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-lg px-1.5 py-1 text-[11px] focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all" />
+                  </div>
+                </div>
+
+                <!-- Receive Date & Due Date Grid -->
+                <div class="grid grid-cols-2 gap-2">
+                  <div>
+                    <label class="block text-[9px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Receive Date</label>
+                    <input type="date" id="config-exam-recv" class="w-full bg-white dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-lg px-1.5 py-1 text-[11px] focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all" />
+                  </div>
+                  <div>
+                    <label class="block text-[9px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Due Date</label>
+                    <input type="date" id="config-exam-due" class="w-full bg-white dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-lg px-1.5 py-1 text-[11px] focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all" />
+                  </div>
+                </div>
+
+                <button type="submit" class="w-full bg-purple-500 hover:bg-purple-600 text-white text-xs py-1.5 rounded-lg font-semibold transition-all shadow-md">
+                  Add Exam Session
+                </button>
+              </form>
+            </div>
+
+            <div class="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-2 max-h-[220px] overflow-y-auto">
+              <ul id="config-exam-list" class="space-y-2 divide-y divide-slate-100 dark:divide-slate-800/40">
+                <!-- Loaded Dynamically -->
+              </ul>
+            </div>
+          </div>
+
+          <!-- Manage Workspace Operators -->
+          <div class="bg-white dark:bg-[#0f172a] rounded-xl border border-slate-200 dark:border-slate-800/80 shadow-sm p-5 space-y-4 flex flex-col justify-between h-fit">
+            <div>
+              <div class="flex justify-between items-center mb-4">
+                <div>
+                  <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Workspace Operators</h3>
+                  <p class="text-xs text-slate-400">Register operators and link them to flow roles.</p>
+                </div>
+                <span id="user-total-badge" class="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 text-xs px-2 py-1 rounded font-bold">0 Active</span>
+              </div>
+
+              <form onsubmit="handleOperatorAdd(event)" class="space-y-2 mb-4">
+                <div class="flex gap-2">
+                  <input type="text" id="config-user-name" required placeholder="Operator Name..." class="flex-1 bg-slate-50 dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all" />
+                  <select id="config-user-role" required class="w-32 bg-slate-50 dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all">
+                    <option value="Typist">Typist</option>
+                    <option value="Proof Reader">Proof Reader</option>
+                    <option value="Corrector">Corrector</option>
+                    <option value="Final Reader">Final Reader</option>
+                  </select>
+                  <button type="submit" class="bg-emerald-500 hover:bg-emerald-600 text-white text-xs px-3 py-1.5 rounded-lg font-semibold transition-all shrink-0">
+                    Register
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <div class="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-2 max-h-[300px] overflow-y-auto">
+              <ul id="config-user-list" class="space-y-1 divide-y divide-slate-100 dark:divide-slate-800/40">
+                <!-- Loaded Dynamically -->
+              </ul>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+
+  <!-- TOAST ALERTS SYSTEM -->
+  <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none">
+    <!-- Toasts inject here -->
+  </div>
+
+  <!-- CONFIRMATION MODAL (100% compliant custom replacement for confirm()) -->
+  <div id="confirm-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-all duration-300 opacity-0 pointer-events-none">
+    <div class="bg-white dark:bg-[#0f172a] rounded-xl shadow-xl border border-slate-200 dark:border-slate-800/80 max-w-sm w-full overflow-hidden transform scale-95 transition-all duration-300" id="confirm-modal-card">
+      <div class="p-5 text-center">
+        <div class="w-12 h-12 bg-rose-100 dark:bg-rose-950/40 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+          </svg>
+        </div>
+        <h3 class="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider mb-2">Confirm Action</h3>
+        <p id="confirm-modal-text" class="text-xs text-slate-500 dark:text-slate-400 mb-6">Are you sure you want to proceed?</p>
+        <div class="flex items-center justify-center gap-2">
+          <button onclick="closeConfirmModal(false)" class="px-4 py-2 text-xs font-semibold rounded-lg text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors">
+            Cancel
+          </button>
+          <button id="confirm-modal-btn" class="bg-rose-500 hover:bg-rose-600 text-white text-xs font-semibold px-5 py-2 rounded-lg shadow-sm transition-all">
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EDIT MODAL -->
+  <div id="edit-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-all duration-300 opacity-0 pointer-events-none">
+    <div class="bg-white dark:bg-[#0f172a] rounded-xl shadow-xl border border-slate-200 dark:border-slate-800/80 max-w-md w-full overflow-hidden transform scale-95 transition-all duration-300" id="edit-modal-card">
+      <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        <h3 class="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider">Modify Paper Details</h3>
+        <button onclick="closeEditModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <form onsubmit="handleEditFormSubmit(event)" class="p-4 space-y-4">
+        <input type="hidden" id="edit-paper-id" />
+        
+        <!-- University Selection -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 dark:text-slate-500 mb-1">University</label>
+          <select id="edit-university" required class="w-full bg-slate-50 dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all">
+            <!-- Dynamically populated -->
+          </select>
+        </div>
+
+        <!-- Exam Session (Grouped by University) -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 dark:text-slate-500 mb-1">Exam Session</label>
+          <select id="edit-exam" required class="w-full bg-slate-50 dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all">
+            <!-- Dynamically populated -->
+          </select>
+        </div>
+
+        <!-- Name & Code Flex Row -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 dark:text-slate-500 mb-1">Paper Name</label>
+            <input type="text" id="edit-name" required class="w-full bg-slate-50 dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 dark:text-slate-500 mb-1">Paper Code</label>
+            <input type="text" id="edit-code" required class="w-full bg-slate-50 dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all" />
+          </div>
+        </div>
+
+        <!-- Date & Status Row -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 dark:text-slate-500 mb-1">Exam Date</label>
+            <input type="date" id="edit-date" required class="w-full bg-slate-50 dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 dark:text-slate-500 mb-1">Current Status</label>
+            <select id="edit-status" required class="w-full bg-slate-50 dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all">
+              <option value="Typing">Typing</option>
+              <option value="Proof Reading">Proof Reading</option>
+              <option value="Correction">Correction</option>
+              <option value="Final Reading">Final Reading</option>
+              <option value="Completed">Completed</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Operator Assignment Section -->
+        <div class="grid grid-cols-2 gap-3 border-t border-slate-100 dark:border-slate-800/80 pt-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 dark:text-slate-500 mb-1">Assignee Role Filter</label>
+            <select id="edit-role-filter" onchange="updateEditUserDropdown()" class="w-full bg-slate-50 dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all">
+              <option value="all">-- All Roles --</option>
+              <option value="Typist">Typist</option>
+              <option value="Proof Reader">Proof Reader</option>
+              <option value="Corrector">Corrector</option>
+              <option value="Final Reader">Final Reader</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 dark:text-slate-500 mb-1">Assign Operator</label>
+            <select id="edit-operator" class="w-full bg-slate-50 dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all">
+              <option value="">-- Unassigned --</option>
+              <!-- Dynamic operator list -->
+            </select>
+          </div>
+        </div>
+
+        <!-- Footer actions -->
+        <div class="pt-4 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-end gap-2">
+          <button type="button" onclick="closeEditModal()" class="px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors">
+            Cancel
+          </button>
+          <button type="submit" class="bg-brand-500 hover:bg-brand-600 text-white text-xs font-semibold px-4 py-1.5 rounded-lg shadow-sm transition-all">
+            Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- CLIENT-SIDE CORE JAVASCRIPT -->
+  <script>
+    // State management
+    let state = {
+      papers: [],
+      universities: [],
+      exams: [], // Dynamic structured exam sessions
+      users: [], // Dynamic operators/users list
+      selectedPaperIds: [],
+      currentTab: 'entry',
+      filters: {
+        university: 'all',
+        exam: 'all',
+        operator: 'all',
+        search: '',
+        date: ''
+      },
+      pagination: {
+        currentPage: 1,
+        pageSize: 6
+      },
+      isSidebarExpanded: true,
+      theme: 'dark' // Default theme config
+    };
+
+    // System Static Date Constant
+    const SYSTEM_DATE = new Date('2026-05-22');
+
+    // Chart.js references for destruction upon updates
+    let statusPieChartInstance = null;
+    let statusBarChartInstance = null;
+
+    // Custom Callback state for Confirmation Modal
+    let confirmCallback = null;
+
+    // Constant initial data configured with your active custom lifecycle
+    const defaultUniversities = [
+      "North Valley University",
+      "Southern State Institute",
+      "Horizon Technical University",
+      "Metropolitan Academy"
+    ];
+
+    // High fidelity default University-linked Exam Sessions with date bounds
+    const defaultExams = [
+      { id: "e1", name: "Spring 2026 Semester Exam", university: "North Valley University", startDate: "2026-01-15", endDate: "2026-05-20", receiveDate: "2026-01-10", dueDate: "2026-05-30" },
+      { id: "e2", name: "Winter 2025 Supplementary", university: "Horizon Technical University", startDate: "2025-11-01", endDate: "2025-12-20", receiveDate: "2025-10-25", dueDate: "2025-12-30" },
+      { id: "e3", name: "Summer 2026 Practical Exam", university: "Southern State Institute", startDate: "2026-05-01", endDate: "2026-06-15", receiveDate: "2026-04-20", dueDate: "2026-06-25" }
+    ];
+
+    const defaultUsers = [
+      { id: "u1", name: "Alice Smith", role: "Typist" },
+      { id: "u2", name: "Bob Jones", role: "Proof Reader" },
+      { id: "u3", name: "Charlie Brown", role: "Corrector" },
+      { id: "u4", name: "Diana Prince", role: "Final Reader" },
+      { id: "u5", name: "Emma Watson", role: "Typist" }
+    ];
+
+    const defaultPapers = [
+      { id: "1", name: "Data Structures & Algorithms", code: "CS-302", university: "North Valley University", examId: "e1", date: "2026-05-10", status: "Typing", assignedUserId: "u1" },
+      { id: "2", name: "Engineering Mathematics II", code: "MAT-201", university: "North Valley University", examId: "e1", date: "2026-05-12", status: "Proof Reading", assignedUserId: "u2" },
+      { id: "3", name: "Introduction to Artificial Intelligence", code: "CS-410", university: "Southern State Institute", examId: "e3", date: "2026-06-02", status: "Correction", assignedUserId: "u3" },
+      { id: "4", name: "Object Oriented Systems", code: "CS-204", university: "Horizon Technical University", examId: "e2", date: "2025-12-15", status: "Final Reading", assignedUserId: "u4" },
+      { id: "5", name: "Modern Operating Systems", code: "CS-301", university: "Metropolitan Academy", examId: "e1", date: "2026-05-18", status: "Completed", assignedUserId: null },
+      { id: "6", name: "Discrete Structures", code: "MAT-105", university: "Horizon Technical University", examId: "e2", date: "2025-12-18", status: "Typing", assignedUserId: "u5" },
+      { id: "7", name: "Computer Organization Architecture", code: "CS-208", university: "Southern State Institute", examId: "e3", date: "2026-06-05", status: "Proof Reading", assignedUserId: "u2" }
+    ];
+
+    // Initialization on Page Load
+    window.addEventListener('DOMContentLoaded', () => {
+      const localPapers = localStorage.getItem('paperflow_papers');
+      const localUnis = localStorage.getItem('paperflow_unis');
+      const localExams = localStorage.getItem('paperflow_exams');
+      const localUsers = localStorage.getItem('paperflow_users');
+      const localTheme = localStorage.getItem('paperflow_theme');
+
+      state.universities = localUnis ? JSON.parse(localUnis) : [...defaultUniversities];
+      state.users = localUsers ? JSON.parse(localUsers) : [...defaultUsers];
+
+      // Safe migration logic for legacy exams format
+      if (localExams) {
+        const parsed = JSON.parse(localExams);
+        if (parsed.length > 0 && typeof parsed[0] === 'string') {
+          state.exams = parsed.map((name, index) => ({
+            id: 'e_' + index,
+            name: name,
+            university: state.universities[0] || defaultUniversities[0],
+            startDate: '',
+            endDate: '',
+            receiveDate: '',
+            dueDate: ''
+          }));
+        } else {
+          state.exams = parsed;
+        }
+      } else {
+        state.exams = [...defaultExams];
+      }
+
+      state.papers = localPapers ? JSON.parse(localPapers) : [...defaultPapers];
+      
+      if (localTheme) {
+        state.theme = localTheme;
+      }
+
+      // Sync active theme class
+      document.documentElement.className = state.theme;
+      updateThemeButtons();
+
+      // Populate filters & forms
+      populateDropdowns();
+      populateConfigUniSelector();
+      updateBulkUserDropdown();
+      
+      // Initial render cycle
+      renderWorkspace();
+    });
+
+    // Save current session to storage
+    function saveToStorage() {
+      localStorage.setItem('paperflow_papers', JSON.stringify(state.papers));
+      localStorage.setItem('paperflow_unis', JSON.stringify(state.universities));
+      localStorage.setItem('paperflow_exams', JSON.stringify(state.exams));
+      localStorage.setItem('paperflow_users', JSON.stringify(state.users));
+    }
+
+    // Custom Confirmation Modal Actions (100% replacement for confirm)
+    function showConfirm(message, callback) {
+      document.getElementById('confirm-modal-text').innerText = message;
+      confirmCallback = callback;
+      
+      const modal = document.getElementById('confirm-modal');
+      const card = document.getElementById('confirm-modal-card');
+      modal.classList.remove('opacity-0', 'pointer-events-none');
+      card.classList.remove('scale-95');
+      card.classList.add('scale-100');
+    }
+
+    function closeConfirmModal(isConfirmed) {
+      const modal = document.getElementById('confirm-modal');
+      const card = document.getElementById('confirm-modal-card');
+      modal.classList.add('opacity-0', 'pointer-events-none');
+      card.classList.remove('scale-100');
+      card.classList.add('scale-95');
+      
+      if (isConfirmed && confirmCallback) {
+        confirmCallback();
+      }
+      confirmCallback = null;
+    }
+
+    // Attach Confirm button action
+    document.getElementById('confirm-modal-btn').onclick = () => closeConfirmModal(true);
+
+    // Restore to factory demo defaults
+    function resetMockData() {
+      showConfirm("Are you sure you want to restore all datasets to default templates?", () => {
+        state.papers = [...defaultPapers];
+        state.universities = [...defaultUniversities];
+        state.exams = [...defaultExams];
+        state.users = [...defaultUsers];
+        state.selectedPaperIds = [];
+        state.filters = { university: 'all', exam: 'all', operator: 'all', search: '', date: '' };
+        state.pagination.currentPage = 1;
+
+        // Reset DOM Inputs
+        document.getElementById('filter-university').value = 'all';
+        document.getElementById('filter-exam').value = 'all';
+        document.getElementById('filter-operator').value = 'all';
+        document.getElementById('filter-search').value = '';
+        document.getElementById('filter-date').value = '';
+
+        saveToStorage();
+        populateDropdowns();
+        populateConfigUniSelector();
+        updateBulkUserDropdown();
+        renderWorkspace();
+        showToast("All workspace datasets restored to default templates", "success");
+      });
+    }
+
+    // Populate Dynamic Lists for inputs & filters
+    function populateDropdowns() {
+      const filterUni = document.getElementById('filter-university');
+      const editUni = document.getElementById('edit-university');
+      const filterOper = document.getElementById('filter-operator');
+      const reportSessionFilter = document.getElementById('report-session-filter');
+
+      // Clear but keep baseline options
+      filterUni.innerHTML = '<option value="all">-- All Universities --</option>';
+      filterOper.innerHTML = '<option value="all">-- All Operators --</option><option value="unassigned">-- Unassigned Papers --</option>';
+      reportSessionFilter.innerHTML = '<option value="all">-- All Exam Sessions --</option>';
+      editUni.innerHTML = '';
+
+      // Universities iteration
+      state.universities.forEach(uni => {
+        filterUni.innerHTML += `<option value="${uni}">${uni}</option>`;
+        editUni.innerHTML += `<option value="${uni}">${uni}</option>`;
+      });
+
+      // Exams iteration (Dynamic Contextual Sub-Population helper)
+      populateExamDropdown();
+
+      // Population of Report tab filter options
+      state.exams.forEach(exam => {
+        reportSessionFilter.innerHTML += `<option value="${exam.id}">${exam.name}</option>`;
+      });
+
+      // Operators filter options
+      state.users.forEach(user => {
+        filterOper.innerHTML += `<option value="${user.id}">${user.name} (${user.role})</option>`;
+      });
+    }
+
+    // Contextual Exam Dropdown Population
+    function populateExamDropdown() {
+      const filterExam = document.getElementById('filter-exam');
+      const editExam = document.getElementById('edit-exam');
+      const selectedUni = document.getElementById('filter-university').value;
+      
+      filterExam.innerHTML = '<option value="all">-- All Active Exams --</option>';
+      editExam.innerHTML = '';
+
+      // Render only linked exams
+      const filteredExams = state.exams.filter(exam => selectedUni === 'all' || exam.university === selectedUni);
+      filteredExams.forEach(exam => {
+        filterExam.innerHTML += `<option value="${exam.id}">${exam.name}</option>`;
+      });
+
+      // Modal select contains everything organized by University group labels
+      const grouped = {};
+      state.exams.forEach(exam => {
+        if (!grouped[exam.university]) grouped[exam.university] = [];
+        grouped[exam.university].push(exam);
+      });
+      
+      Object.keys(grouped).forEach(uni => {
+        const groupOpt = document.createElement('optgroup');
+        groupOpt.label = uni;
+        grouped[uni].forEach(exam => {
+          const opt = document.createElement('option');
+          opt.value = exam.id;
+          opt.textContent = exam.name;
+          groupOpt.appendChild(opt);
+        });
+        editExam.appendChild(groupOpt);
+      });
+
+      // Synchronize state
+      if (state.exams.some(e => e.id === state.filters.exam)) {
+        filterExam.value = state.filters.exam;
+      } else {
+        filterExam.value = 'all';
+        state.filters.exam = 'all';
+      }
+    }
+
+    // Populate active Universities inside the Config exam session form
+    function populateConfigUniSelector() {
+      const select = document.getElementById('config-exam-uni');
+      if (!select) return;
+      select.innerHTML = '<option value="" disabled selected>-- Select University --</option>';
+      state.universities.forEach(uni => {
+        select.innerHTML += `<option value="${uni}">${uni}</option>`;
+      });
+    }
+
+    // Dynamically Filter & Populate User Selector in Bulk Action bar
+    function updateBulkUserDropdown() {
+      const roleFilter = document.getElementById('bulk-role-selector').value;
+      const userSelect = document.getElementById('bulk-user-selector');
+      
+      userSelect.innerHTML = `
+        <option value="keep">-- Keep Assigned --</option>
+        <option value="unassign">-- Unassign Operator --</option>
+      `;
+
+      const filteredUsers = state.users.filter(u => roleFilter === 'all' || u.role === roleFilter);
+      filteredUsers.forEach(user => {
+        userSelect.innerHTML += `<option value="${user.id}">${user.name} (${user.role})</option>`;
+      });
+    }
+
+    // Dynamically Filter & Populate User Selector in Edit Dialog Modal
+    function updateEditUserDropdown() {
+      const roleFilter = document.getElementById('edit-role-filter').value;
+      const operatorSelect = document.getElementById('edit-operator');
+      
+      operatorSelect.innerHTML = `<option value="">-- Unassigned --</option>`;
+
+      const filteredUsers = state.users.filter(u => roleFilter === 'all' || u.role === roleFilter);
+      filteredUsers.forEach(user => {
+        operatorSelect.innerHTML += `<option value="${user.id}">${user.name} (${user.role})</option>`;
+      });
+    }
+
+    // Main Render Pipeline
+    function renderWorkspace() {
+      renderSummaryCards();
+      renderTable();
+      renderReportsTab();
+      renderConfigPanel();
+    }
+
+    // Render Stats
+    function renderSummaryCards() {
+      const total = state.papers.length;
+      const typing = state.papers.filter(p => p.status === 'Typing').length;
+      const inReview = state.papers.filter(p => p.status === 'Proof Reading' || p.status === 'Correction' || p.status === 'Final Reading').length;
+      const completed = state.papers.filter(p => p.status === 'Completed').length;
+
+      document.getElementById('stat-total').innerText = total;
+      document.getElementById('stat-entered').innerText = typing;
+      document.getElementById('stat-evaluation').innerText = inReview;
+      document.getElementById('stat-published').innerText = completed;
+    }
+
+    // Render Table based on pagination, filters and searches
+    function renderTable() {
+      const tableBody = document.getElementById('papers-table-body');
+      const emptyState = document.getElementById('table-empty-state');
+      
+      // Apply search & filters
+      let processedPapers = state.papers.filter(paper => {
+        const matchUni = state.filters.university === 'all' || paper.university === state.filters.university;
+        
+        let matchExam = true;
+        if (state.filters.exam !== 'all') {
+          matchExam = paper.examId === state.filters.exam || paper.exam === state.filters.exam;
+        }
+
+        const matchDate = !state.filters.date || paper.date === state.filters.date;
+        
+        let matchOper = true;
+        if (state.filters.operator === 'unassigned') {
+          matchOper = !paper.assignedUserId;
+        } else if (state.filters.operator !== 'all') {
+          matchOper = paper.assignedUserId === state.filters.operator;
+        }
+
+        const q = state.filters.search.toLowerCase().trim();
+        const matchSearch = q === '' || 
+                            paper.name.toLowerCase().includes(q) || 
+                            paper.code.toLowerCase().includes(q) ||
+                            paper.university.toLowerCase().includes(q);
+
+        return matchUni && matchExam && matchDate && matchOper && matchSearch;
+      });
+
+      // Update counters
+      document.getElementById('stat-visible-papers').innerText = processedPapers.length;
+
+      // Handle Pagination Limits
+      const totalItems = processedPapers.length;
+      const totalPages = Math.max(1, Math.ceil(totalItems / state.pagination.pageSize));
+      
+      if (state.pagination.currentPage > totalPages) {
+        state.pagination.currentPage = totalPages;
+      }
+
+      const startIndex = (state.pagination.currentPage - 1) * state.pagination.pageSize;
+      const endIndex = Math.min(startIndex + state.pagination.pageSize, totalItems);
+      
+      const paginatedItems = processedPapers.slice(startIndex, endIndex);
+
+      // Render Empty state vs content
+      if (totalItems === 0) {
+        tableBody.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        document.getElementById('paginated-start').innerText = '0';
+        document.getElementById('paginated-end').innerText = '0';
+        document.getElementById('paginated-total').innerText = '0';
+        document.getElementById('pagination-indicator').innerText = 'Page 1 of 1';
+        document.getElementById('btn-prev-page').disabled = true;
+        document.getElementById('btn-next-page').disabled = true;
+        document.getElementById('checkbox-select-all').checked = false;
+        updateBulkMenuBar();
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      
+      // Update Pagination Labels
+      document.getElementById('paginated-start').innerText = startIndex + 1;
+      document.getElementById('paginated-end').innerText = endIndex;
+      document.getElementById('paginated-total').innerText = totalItems;
+      document.getElementById('pagination-indicator').innerText = `Page ${state.pagination.currentPage} of ${totalPages}`;
+      
+      document.getElementById('btn-prev-page').disabled = state.pagination.currentPage === 1;
+      document.getElementById('btn-next-page').disabled = state.pagination.currentPage === totalPages;
+
+      // Determine "Select All" status of current visible list
+      const allCurrentVisibleSelected = paginatedItems.every(p => state.selectedPaperIds.includes(p.id));
+      document.getElementById('checkbox-select-all').checked = allCurrentVisibleSelected && paginatedItems.length > 0;
+
+      // Generate HTML
+      let html = '';
+      paginatedItems.forEach(paper => {
+        const isChecked = state.selectedPaperIds.includes(paper.id);
+        const statusBadge = getStatusBadge(paper.status);
+        const operatorInfo = getOperatorBadge(paper.assignedUserId);
+
+        // Fetch link-associated Exam object safely
+        const examObj = state.exams.find(e => e.id === paper.examId || e.name === paper.exam || e.id === paper.exam);
+        const examName = examObj ? examObj.name : (paper.exam || 'Unknown Session');
+        
+        // Comprehensive hover breakdown tooltip
+        const dateTooltip = examObj ? `S: ${formatDateString(examObj.startDate)}  |  E: ${formatDateString(examObj.endDate)}&#10;Recv: ${formatDateString(examObj.receiveDate)}  |  Due: ${formatDateString(examObj.dueDate)}` : 'No exam bounds set';
+
+        html += `
+          <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors group ${isChecked ? 'bg-brand-50/10 dark:bg-brand-950/10' : ''}">
+            <td class="py-2.5 px-4 text-center">
+              <input type="checkbox" onchange="toggleRowSelection('${paper.id}')" ${isChecked ? 'checked' : ''} class="rounded text-brand-600 focus:ring-brand-500 w-4 h-4 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 cursor-pointer" />
+            </td>
+            <td class="py-2.5 px-4 font-medium text-slate-900 dark:text-white">
+              <span class="block hover:text-brand-500 dark:hover:text-brand-400 cursor-pointer text-sm font-semibold" onclick="openEditModal('${paper.id}')">${paper.name}</span>
+              <span class="font-mono text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5">${paper.code}</span>
+            </td>
+            <td class="py-2.5 px-4 text-xs text-slate-600 dark:text-slate-300">
+              <span class="font-semibold block truncate max-w-[170px]" title="${paper.university}">${paper.university}</span>
+              <span class="text-[10px] text-slate-400 dark:text-slate-500 block truncate max-w-[170px] underline decoration-dotted cursor-help" title="${dateTooltip}">${examName}</span>
+            </td>
+            <td class="py-2.5 px-4 text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
+              ${formatDateString(paper.date)}
+            </td>
+            <td class="py-2.5 px-4 text-xs">
+              ${operatorInfo}
+            </td>
+            <td class="py-2.5 px-4 text-center">
+              ${statusBadge}
+            </td>
+            <td class="py-2.5 px-4 text-right">
+              <div class="flex items-center justify-end gap-1.5 opacity-90 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                <button onclick="openEditModal('${paper.id}')" class="p-1 text-slate-400 hover:text-brand-500 dark:hover:text-brand-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors" title="Edit Paper">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                  </svg>
+                </button>
+                <button onclick="deleteSinglePaper('${paper.id}')" class="p-1 text-slate-400 hover:text-rose-500 rounded hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors" title="Delete Paper">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7"></path>
+                  </svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      });
+
+      tableBody.innerHTML = html;
+      updateBulkMenuBar();
+    }
+
+    // Build Assigned Operator badge style
+    function getOperatorBadge(userId) {
+      if (!userId) {
+        return `<span class="text-slate-400 dark:text-slate-600 italic text-[11px]">Unassigned</span>`;
+      }
+      const user = state.users.find(u => u.id === userId);
+      if (!user) {
+        return `<span class="text-slate-400 dark:text-slate-600 italic text-[11px]">Unassigned</span>`;
+      }
+
+      // Dynamic color roles
+      let roleColor = "text-blue-500 bg-blue-500/10";
+      if (user.role === 'Proof Reader') roleColor = "text-amber-500 bg-amber-500/10";
+      if (user.role === 'Corrector') roleColor = "text-rose-500 bg-rose-500/10";
+      if (user.role === 'Final Reader') roleColor = "text-purple-500 bg-purple-500/10";
+
+      return `
+        <div class="flex flex-col">
+          <span class="font-semibold text-slate-800 dark:text-slate-200">${user.name}</span>
+          <span class="inline-block self-start text-[9px] font-semibold px-1 rounded uppercase tracking-wider ${roleColor} mt-0.5">${user.role}</span>
+        </div>
+      `;
+    }
+
+    // Build modern color pills for Exam Paper States
+    function getStatusBadge(status) {
+      let colors = "";
+      switch (status) {
+        case "Typing":
+          colors = "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400 ring-blue-600/10";
+          break;
+        case "Proof Reading":
+          colors = "bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400 ring-amber-600/10";
+          break;
+        case "Correction":
+          colors = "bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-400 ring-rose-600/10";
+          break;
+        case "Final Reading":
+          colors = "bg-purple-50 text-purple-700 dark:bg-purple-950/50 dark:text-purple-400 ring-purple-600/10";
+          break;
+        case "Completed":
+          colors = "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 ring-emerald-600/10";
+          break;
+        default:
+          colors = "bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-300 ring-slate-500/10";
+      }
+
+      return `<span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ring-1 ring-inset ${colors}">${status}</span>`;
+    }
+
+    // Human Readable Date Conversion
+    function formatDateString(dateStr) {
+      if (!dateStr) return "-";
+      const parts = dateStr.split('-');
+      if (parts.length !== 3) return dateStr;
+      return `${parts[2]}-${parts[1]}-${parts[0]}`;
+    }
+
+    // Toggle Single Row Choice
+    function toggleRowSelection(id) {
+      const idx = state.selectedPaperIds.indexOf(id);
+      if (idx > -1) {
+        state.selectedPaperIds.splice(idx, 1);
+      } else {
+        state.selectedPaperIds.push(id);
+      }
+      renderTable();
+    }
+
+    // Toggle All Current Page Rows
+    function toggleSelectAll(masterCheckbox) {
+      const processedPapers = state.papers.filter(paper => {
+        const matchUni = state.filters.university === 'all' || paper.university === state.filters.university;
+        let matchExam = true;
+        if (state.filters.exam !== 'all') {
+          matchExam = paper.examId === state.filters.exam || paper.exam === state.filters.exam;
+        }
+        const matchDate = !state.filters.date || paper.date === state.filters.date;
+        let matchOper = true;
+        if (state.filters.operator === 'unassigned') {
+          matchOper = !paper.assignedUserId;
+        } else if (state.filters.operator !== 'all') {
+          matchOper = paper.assignedUserId === state.filters.operator;
+        }
+        const q = state.filters.search.toLowerCase().trim();
+        const matchSearch = q === '' || 
+                            paper.name.toLowerCase().includes(q) || 
+                            paper.code.toLowerCase().includes(q) ||
+                            paper.university.toLowerCase().includes(q);
+        return matchUni && matchExam && matchDate && matchOper && matchSearch;
+      });
+
+      const startIndex = (state.pagination.currentPage - 1) * state.pagination.pageSize;
+      const endIndex = Math.min(startIndex + state.pagination.pageSize, processedPapers.length);
+      const currentPaginatedItems = processedPapers.slice(startIndex, endIndex);
+
+      if (masterCheckbox.checked) {
+        currentPaginatedItems.forEach(item => {
+          if (!state.selectedPaperIds.includes(item.id)) {
+            state.selectedPaperIds.push(item.id);
+          }
+        });
+      } else {
+        currentPaginatedItems.forEach(item => {
+          const idx = state.selectedPaperIds.indexOf(item.id);
+          if (idx > -1) {
+            state.selectedPaperIds.splice(idx, 1);
+          }
+        });
+      }
+      renderTable();
+    }
+
+    // Action bar state visualization
+    function updateBulkMenuBar() {
+      const bar = document.getElementById('bulk-action-bar');
+      const countLabel = document.getElementById('bulk-selected-count');
+      
+      if (state.selectedPaperIds.length > 0) {
+        bar.classList.remove('hidden');
+        countLabel.innerText = `${state.selectedPaperIds.length} selected`;
+      } else {
+        bar.classList.add('hidden');
+      }
+    }
+
+    // Filter controls applied on elements
+    function applyFilters() {
+      state.filters.university = document.getElementById('filter-university').value;
+      state.filters.exam = document.getElementById('filter-exam').value;
+      state.filters.operator = document.getElementById('filter-operator').value;
+      state.filters.search = document.getElementById('filter-search').value;
+      state.filters.date = document.getElementById('filter-date').value;
+      state.pagination.currentPage = 1;
+      renderWorkspace();
+    }
+
+    // Custom contextual handler when the select university filter dropdown is adjusted
+    function handleUniversityFilterChange() {
+      state.filters.university = document.getElementById('filter-university').value;
+      
+      if (state.filters.university !== 'all') {
+        const activeExamObj = state.exams.find(e => e.id === state.filters.exam || e.name === state.filters.exam);
+        if (activeExamObj && activeExamObj.university !== state.filters.university) {
+          state.filters.exam = 'all';
+          document.getElementById('filter-exam').value = 'all';
+        }
+      }
+      
+      populateExamDropdown();
+      applyFilters();
+    }
+
+    // Quick Clear of Date Filter
+    function clearDateFilter() {
+      document.getElementById('filter-date').value = '';
+      applyFilters();
+      showToast("Cleared exam date filter", "info");
+    }
+
+    // Pagination Actions
+    function changePage(direction) {
+      state.pagination.currentPage += direction;
+      renderTable();
+    }
+
+    // Add Paper logic
+    function handleFormSubmit(e) {
+      e.preventDefault();
+
+      const uni = state.filters.university !== 'all' ? state.filters.university : state.universities[0];
+      
+      let examId = null;
+      if (state.filters.exam !== 'all') {
+        const filterExamObj = state.exams.find(e => e.id === state.filters.exam);
+        if (filterExamObj && filterExamObj.university === uni) {
+          examId = filterExamObj.id;
+        }
+      }
+      
+      if (!examId) {
+        const firstExamForUni = state.exams.find(e => e.university === uni);
+        examId = firstExamForUni ? firstExamForUni.id : (state.exams[0] ? state.exams[0].id : null);
+      }
+      
+      const name = document.getElementById('form-paper-name').value.trim();
+      const code = document.getElementById('form-paper-code').value.trim().toUpperCase();
+      const date = document.getElementById('form-exam-date').value;
+
+      if (!uni || !examId) {
+        showToast("Configure at least one University and associated Exam Session first", "warning");
+        return;
+      }
+
+      if (!name || !code || !date) {
+        showToast("Please fill out all required fields", "warning");
+        return;
+      }
+
+      const codeExists = state.papers.some(p => p.code === code && (p.examId === examId || p.exam === examId));
+      if (codeExists) {
+        showToast(`A paper with code '${code}' already exists under this exam schedule`, "warning");
+        return;
+      }
+
+      const newPaper = {
+        id: Date.now().toString(),
+        name,
+        code,
+        university: uni,
+        examId: examId,
+        date,
+        status: "Typing",
+        assignedUserId: null
+      };
+
+      state.papers.unshift(newPaper);
+      saveToStorage();
+      
+      document.getElementById('paper-form').reset();
+      
+      renderWorkspace();
+      showToast(`Successfully registered "${name}" to tracking flow under ${uni}`, "success");
+    }
+
+    // Delete paper trigger
+    function deleteSinglePaper(id) {
+      const targetIndex = state.papers.findIndex(p => p.id === id);
+      if (targetIndex === -1) return;
+
+      const targetPaper = state.papers[targetIndex];
+      
+      showConfirm(`Are you sure you want to delete "${targetPaper.name}" from tracking records?`, () => {
+        state.papers.splice(targetIndex, 1);
+        
+        const selectIdx = state.selectedPaperIds.indexOf(id);
+        if (selectIdx > -1) {
+          state.selectedPaperIds.splice(selectIdx, 1);
+        }
+        
+        saveToStorage();
+        renderWorkspace();
+        showToast("Paper record deleted successfully", "info");
+      });
+    }
+
+    // Bulk actions
+    function executeBulkUpdate() {
+      const targetStatus = document.getElementById('bulk-status-selector').value;
+      const targetUserChoice = document.getElementById('bulk-user-selector').value;
+      
+      state.papers.forEach(p => {
+        if (state.selectedPaperIds.includes(p.id)) {
+          if (targetStatus !== 'keep') {
+            p.status = targetStatus;
+          }
+          if (targetUserChoice === 'unassign') {
+            p.assignedUserId = null;
+          } else if (targetUserChoice !== 'keep') {
+            p.assignedUserId = targetUserChoice;
+          }
+        }
+      });
+
+      state.selectedPaperIds = [];
+      saveToStorage();
+      renderWorkspace();
+      showToast("Selected papers have been updated and assigned successfully", "success");
+    }
+
+    // Bulk Delete Action Card trigger
+    function executeBulkDeleteBtn() {
+      showConfirm(`Confirm removing ${state.selectedPaperIds.length} selected paper flows from system?`, () => {
+        state.papers = state.papers.filter(p => !state.selectedPaperIds.includes(p.id));
+        state.selectedPaperIds = [];
+        saveToStorage();
+        renderWorkspace();
+        showToast("Selected workspace rows deleted successfully", "success");
+      });
+    }
+
+    // Tab Switch Actions
+    function switchTab(tabName) {
+      state.currentTab = tabName;
+      
+      const tabs = ['entry', 'reports', 'config'];
+      tabs.forEach(t => {
+        const btn = document.getElementById(`nav-${t}`);
+        const cnt = document.getElementById(`tab-content-${t}`);
+        
+        if (t === tabName) {
+          btn.className = "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors bg-brand-50 text-brand-600 dark:bg-brand-950/40 dark:text-brand-500";
+          cnt.classList.remove('hidden');
+        } else {
+          btn.className = "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-100";
+          cnt.classList.add('hidden');
+        }
+      });
+
+      const workspaceTitle = document.getElementById('workspace-title');
+      if (tabName === 'entry') workspaceTitle.innerText = "Paper Tracking Workspace";
+      if (tabName === 'reports') workspaceTitle.innerText = "Reports & Evaluation Insights";
+      if (tabName === 'config') workspaceTitle.innerText = "Configuration & Entities Master";
+
+      renderWorkspace();
+    }
+
+    // Collapsible Sidebar trigger
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const textElements = document.querySelectorAll('.sidebar-text');
+      const icon = document.getElementById('collapse-icon');
+      
+      state.isSidebarExpanded = !state.isSidebarExpanded;
+
+      if (state.isSidebarExpanded) {
+        sidebar.classList.remove('w-20');
+        sidebar.classList.add('w-64');
+        textElements.forEach(el => el.classList.remove('hidden'));
+        icon.style.transform = "rotate(0deg)";
+      } else {
+        sidebar.classList.remove('w-64');
+        sidebar.classList.add('w-20');
+        textElements.forEach(el => el.classList.add('hidden'));
+        icon.style.transform = "rotate(180deg)";
+      }
+
+      // Re-trigger dynamic charting layouts on collapse transition
+      setTimeout(() => {
+        if (state.currentTab === 'reports') {
+          renderReportsTab();
+        }
+      }, 310);
+    }
+
+    // Dynamic toast framework
+    function showToast(message, type = "info") {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      
+      let border = "border-blue-500 dark:border-blue-400";
+      let bg = "bg-white dark:bg-[#1e293b]";
+      let text = "text-slate-800 dark:text-white";
+      let icon = `
+        <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+      `;
+
+      if (type === "success") {
+        border = "border-emerald-500 dark:border-emerald-400";
+        icon = `
+          <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+        `;
+      } else if (type === "warning") {
+        border = "border-amber-500 dark:border-amber-400";
+        icon = `
+          <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+          </svg>
+        `;
+      }
+
+      toast.className = `flex items-center gap-3 p-3 rounded-xl border-l-4 shadow-xl ${bg} ${text} ${border} transition-all duration-300 transform translate-y-4 opacity-0 pointer-events-auto`;
+      toast.innerHTML = `
+        <div class="shrink-0">${icon}</div>
+        <div class="flex-1 text-xs font-semibold">${message}</div>
+      `;
+
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.classList.remove('translate-y-4', 'opacity-0');
+      }, 50);
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-x-4');
+        setTimeout(() => {
+          toast.remove();
+        }, 300);
+      }, 3500);
+    }
+
+    // Toggle Theme (Dark vs Light)
+    function toggleTheme() {
+      if (state.theme === 'dark') {
+        state.theme = 'light';
+      } else {
+        state.theme = 'dark';
+      }
+      localStorage.setItem('paperflow_theme', state.theme);
+      document.documentElement.className = state.theme;
+      updateThemeButtons();
+      showToast(`Switched workspace style to ${state.theme === 'dark' ? 'Dark Mode' : 'Light Mode'}`, "info");
+      
+      // Force repaint reporting charts if active to align theme grid text colors
+      if (state.currentTab === 'reports') {
+        renderReportsTab();
+      }
+    }
+
+    function updateThemeButtons() {
+      const sun = document.getElementById('theme-sun');
+      const moon = document.getElementById('theme-moon');
+
+      if (state.theme === 'dark') {
+        sun.classList.remove('hidden');
+        moon.classList.add('hidden');
+      } else {
+        sun.classList.add('hidden');
+        moon.classList.remove('hidden');
+      }
+    }
+
+
+    /* =========================================================================
+       📊 HIGH FIDELITY INTERACTIVE REPORTS SYSTEM (UPGRADED!)
+       ========================================================================= */
+
+    function renderReportsTab() {
+      const sessionFilter = document.getElementById('report-session-filter').value;
+      
+      // 1. Core Data Filtering specifically for analytical charts
+      const analyzedPapers = state.papers.filter(paper => {
+        if (sessionFilter === 'all') return true;
+        return paper.examId === sessionFilter || paper.exam === sessionFilter;
+      });
+
+      // 2. Count Status Volumes
+      const counts = {
+        Typing: 0,
+        "Proof Reading": 0,
+        Correction: 0,
+        "Final Reading": 0,
+        Completed: 0
+      };
+
+      analyzedPapers.forEach(p => {
+        if (p.status in counts) {
+          counts[p.status]++;
+        }
+      });
+
+      // 3. Render Chart.js Donut / Pie Status Allocation Chart
+      renderPieChart(counts);
+
+      // 4. Render Chart.js Horizontal/Vertical Saturation Bar Chart
+      renderBarChart(counts);
+
+      // 5. Render Champions Per Stage Grid
+      renderStageChampions();
+
+      // 6. Render Operator Workload Ledger
+      renderOperatorWorkloadLedger();
+
+      // 7. Render Stepper Paper-wise Progression Audit Timeline
+      renderPaperTimelineAudit();
+    }
+
+    // Chart.js Pie / Donut Status Allocation Chart renderer
+    function renderPieChart(counts) {
+      const ctx = document.getElementById('reportPieChart').getContext('2d');
+      
+      // Cleanup previous memory hooks
+      if (statusPieChartInstance) {
+        statusPieChartInstance.destroy();
+      }
+
+      const textColors = state.theme === 'dark' ? '#f8fafc' : '#334155';
+      const labels = Object.keys(counts);
+      const data = Object.values(counts);
+
+      // Render placeholder info if absolutely zero matching entries found
+      if (data.every(val => val === 0)) {
+        ctx.clearRect(0,0,300,300);
+        return;
+      }
+
+      statusPieChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: data,
+            backgroundColor: [
+              'rgba(59, 130, 246, 0.8)',  // Typing (Blue)
+              'rgba(245, 158, 11, 0.8)',  // Proof Reading (Amber)
+              'rgba(239, 68, 68, 0.8)',   // Correction (Red)
+              'rgba(168, 85, 247, 0.8)',  // Final Reading (Purple)
+              'rgba(16, 185, 129, 0.8)'   // Completed (Emerald)
+            ],
+            borderColor: state.theme === 'dark' ? '#0f172a' : '#ffffff',
+            borderWidth: 2,
+            hoverOffset: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                color: textColors,
+                boxWidth: 10,
+                padding: 10,
+                font: { size: 10, weight: 'semibold' }
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const label = context.label || '';
+                  const value = context.raw || 0;
+                  const total = context.dataset.data.reduce((acc, curr) => acc + curr, 0);
+                  const percentage = Math.round((value / total) * 100);
+                  return ` ${label}: ${value} Papers (${percentage}%)`;
+                }
+              }
+            }
+          },
+          cutout: '60%'
+        }
+      });
+    }
+
+    // Chart.js Saturation Bar Chart renderer
+    function renderBarChart(counts) {
+      const ctx = document.getElementById('reportBarChart').getContext('2d');
+      
+      if (statusBarChartInstance) {
+        statusBarChartInstance.destroy();
+      }
+
+      const textColors = state.theme === 'dark' ? '#94a3b8' : '#475569';
+      const gridColors = state.theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+
+      const labels = Object.keys(counts);
+      const data = Object.values(counts);
+
+      statusBarChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Active Papers',
+            data: data,
+            backgroundColor: [
+              'rgba(59, 130, 246, 0.75)',
+              'rgba(245, 158, 11, 0.75)',
+              'rgba(239, 68, 68, 0.75)',
+              'rgba(168, 85, 247, 0.75)',
+              'rgba(16, 185, 129, 0.75)'
+            ],
+            borderRadius: 6,
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { color: textColors, font: { size: 9, weight: '500' } }
+            },
+            y: {
+              grid: { color: gridColors },
+              ticks: { 
+                color: textColors, 
+                stepSize: 1, 
+                font: { size: 9 },
+                precision: 0
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Top Performer Per Stage algorithm computation
+    function renderStageChampions() {
+      const grid = document.getElementById('top-champions-grid');
+      grid.innerHTML = '';
+
+      // Define stages and associate default user roles
+      const stages = [
+        { status: "Typing", role: "Typist", title: "Typing Hero", iconColor: "text-blue-500", bgLight: "bg-blue-500/10" },
+        { status: "Proof Reading", role: "Proof Reader", title: "Proof Champion", iconColor: "text-amber-500", bgLight: "bg-amber-500/10" },
+        { status: "Correction", role: "Corrector", title: "Master Editor", iconColor: "text-red-500", bgLight: "bg-red-500/10" },
+        { status: "Final Reading", role: "Final Reader", title: "Perfect Auditor", iconColor: "text-purple-500", bgLight: "bg-purple-500/10" },
+        { status: "Completed", role: "Overall", title: "Efficiency Legend", iconColor: "text-emerald-500", bgLight: "bg-emerald-500/10" }
+      ];
+
+      stages.forEach(stage => {
+        let bestUser = null;
+        let bestCount = 0;
+
+        state.users.forEach(user => {
+          let count = 0;
+          if (stage.status === "Completed") {
+            // Completed is calculated as papers assigned to this operator which are fully completed
+            count = state.papers.filter(p => p.assignedUserId === user.id && p.status === "Completed").length;
+          } else {
+            // Count papers of this exact status assigned to the user
+            count = state.papers.filter(p => p.assignedUserId === user.id && p.status === stage.status).length;
+          }
+
+          if (count > bestCount) {
+            bestCount = count;
+            bestUser = user;
+          }
+        });
+
+        const card = document.createElement('div');
+        card.className = `p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0f172a] shadow-sm flex flex-col justify-between items-start h-[120px]`;
+        
+        let headerHtml = `
+          <div class="flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full ${stage.iconColor} bg-current"></span>
+            <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">${stage.status}</span>
+          </div>
+        `;
+
+        let performerHtml = ``;
+        if (bestUser && bestCount > 0) {
+          performerHtml = `
+            <div class="mt-2 flex-1 w-full">
+              <h5 class="text-xs font-bold text-slate-800 dark:text-white truncate">${bestUser.name}</h5>
+              <p class="text-[9px] font-semibold text-slate-400 dark:text-slate-500 mt-0.5">${stage.title}</p>
+            </div>
+            <div class="mt-2 w-full flex items-center justify-between text-[10px]">
+              <span class="text-slate-400">Throughput</span>
+              <span class="font-bold ${stage.iconColor} px-1.5 py-0.5 rounded ${stage.bgLight}">${bestCount} Papers</span>
+            </div>
+          `;
+        } else {
+          performerHtml = `
+            <div class="mt-4 flex-1 text-center w-full">
+              <p class="text-[10px] text-slate-400 dark:text-slate-500 italic">No task metrics logged</p>
+            </div>
+          `;
+        }
+
+        card.innerHTML = headerHtml + performerHtml;
+        grid.appendChild(card);
+      });
+    }
+
+    // Operator Workload Productivity Ledger renderer
+    function renderOperatorWorkloadLedger() {
+      const tableBody = document.getElementById('operator-report-table');
+      const operatorCountBadge = document.getElementById('operator-active-count');
+      
+      tableBody.innerHTML = '';
+      operatorCountBadge.innerText = `${state.users.length} Operators Active`;
+
+      if (state.users.length === 0) {
+        tableBody.innerHTML = `
+          <tr>
+            <td colspan="6" class="py-4 text-center text-xs text-slate-400 italic">No workspace operators registered. Link operators under the Config panel.</td>
+          </tr>
+        `;
+        return;
+      }
+
+      state.users.forEach(user => {
+        const assignedPapers = state.papers.filter(p => p.assignedUserId === user.id);
+        const activeCount = assignedPapers.filter(p => p.status !== "Completed").length;
+        const completedCount = assignedPapers.filter(p => p.status === "Completed").length;
+        const totalCount = assignedPapers.length;
+
+        // Calculate productivity rate (Percentage of completed items vs total)
+        const rate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+        let rateBarColor = "bg-blue-500";
+        if (rate >= 75) rateBarColor = "bg-emerald-500";
+        else if (rate >= 40) rateBarColor = "bg-purple-500";
+        else if (rate > 0) rateBarColor = "bg-amber-500";
+
+        tableBody.innerHTML += `
+          <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors">
+            <td class="py-2.5 px-4 font-bold text-slate-800 dark:text-white">${user.name}</td>
+            <td class="py-2.5 px-4">
+              <span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 uppercase tracking-wider">${user.role}</span>
+            </td>
+            <td class="py-2.5 px-4 text-center font-semibold text-slate-700 dark:text-slate-300">${activeCount}</td>
+            <td class="py-2.5 px-4 text-center font-semibold text-emerald-600 dark:text-emerald-400">${completedCount}</td>
+            <td class="py-2.5 px-4 text-center font-semibold text-slate-500">${totalCount}</td>
+            <td class="py-2.5 px-4 text-right">
+              <div class="flex items-center justify-end gap-2">
+                <span class="font-bold font-mono text-[11px]">${rate}%</span>
+                <div class="w-16 bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden hidden sm:block">
+                  <div class="h-full ${rateBarColor}" style="width: ${rate}%"></div>
+                </div>
+              </div>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    // High Density Paper Progress Stepper Timeline Audit renderer
+    function renderPaperTimelineAudit() {
+      const container = document.getElementById('paper-audit-timeline-container');
+      const searchVal = document.getElementById('report-paper-search').value.toLowerCase().trim();
+
+      container.innerHTML = '';
+
+      // Filter and query papers
+      const filtered = state.papers.filter(p => {
+        return !searchVal || 
+               p.name.toLowerCase().includes(searchVal) || 
+               p.code.toLowerCase().includes(searchVal);
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-400 py-4 text-center italic">No matching papers logged in system context.</p>`;
+        return;
+      }
+
+      // Step configuration dictionary mapping indices
+      const steps = ["Typing", "Proof Reading", "Correction", "Final Reading", "Completed"];
+
+      filtered.forEach(paper => {
+        const activeStepIdx = steps.indexOf(paper.status);
+        const assignedOperator = state.users.find(u => u.id === paper.assignedUserId);
+        const operatorName = assignedOperator ? assignedOperator.name : "Unassigned";
+
+        // Fetch Exam Session date details for deadline monitoring
+        const examObj = state.exams.find(e => e.id === paper.examId || e.name === paper.exam || e.id === paper.exam);
+        
+        let priorityBadge = ``;
+        if (paper.status === "Completed") {
+          priorityBadge = `<span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500 ring-1 ring-emerald-500/20">Finished</span>`;
+        } else if (examObj && examObj.dueDate) {
+          const dueDateObj = new Date(examObj.dueDate);
+          const timeDiff = dueDateObj.getTime() - SYSTEM_DATE.getTime();
+          const dayDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+
+          if (dayDiff < 0) {
+            priorityBadge = `<span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-red-500/15 text-red-500 ring-1 ring-red-500/30 animate-pulse">Overdue (${Math.abs(dayDiff)}d)</span>`;
+          } else if (dayDiff <= 7) {
+            priorityBadge = `<span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-500 ring-1 ring-amber-500/30">Due in ${dayDiff}d</span>`;
+          } else {
+            priorityBadge = `<span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500">On Track</span>`;
+          }
+        } else {
+          priorityBadge = `<span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-slate-500/10 text-slate-500">Unbounded</span>`;
+        }
+
+        let stepperHtml = ``;
+        steps.forEach((step, idx) => {
+          const isCompleted = idx < activeStepIdx;
+          const isActive = idx === activeStepIdx;
+          
+          let circleColor = "border-slate-300 text-slate-400 dark:border-slate-700 dark:text-slate-600";
+          let labelColor = "text-slate-400 dark:text-slate-600";
+
+          if (isCompleted) {
+            circleColor = "bg-emerald-500 border-emerald-500 text-white";
+            labelColor = "text-slate-700 dark:text-slate-300 font-semibold";
+          } else if (isActive) {
+            // Theme colors matching stage status
+            if (step === "Typing") circleColor = "border-blue-500 text-blue-500 bg-blue-500/10 ring-4 ring-blue-500/20";
+            else if (step === "Proof Reading") circleColor = "border-amber-500 text-amber-500 bg-amber-500/10 ring-4 ring-amber-500/20";
+            else if (step === "Correction") circleColor = "border-rose-500 text-rose-500 bg-rose-500/10 ring-4 ring-rose-500/20";
+            else if (step === "Final Reading") circleColor = "border-purple-500 text-purple-500 bg-purple-500/10 ring-4 ring-purple-500/20";
+            
+            labelColor = "text-brand-500 font-bold underline decoration-2";
+          }
+
+          stepperHtml += `
+            <div class="flex-1 flex flex-col items-center relative text-center">
+              <!-- Line Connector -->
+              ${idx < steps.length - 1 ? `
+                <div class="absolute h-0.5 top-3.5 left-1/2 right-[-50%] z-0 ${idx < activeStepIdx ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-800'}"></div>
+              ` : ''}
+              
+              <!-- Circle Node -->
+              <div class="w-7 h-7 rounded-full border-2 flex items-center justify-center z-10 text-xs font-bold transition-all ${circleColor}">
+                ${isCompleted ? '✓' : idx + 1}
+              </div>
+              <span class="text-[9px] mt-1 hidden sm:block truncate max-w-[80px] ${labelColor}" title="${step}">${step}</span>
+            </div>
+          `;
+        });
+
+        container.innerHTML += `
+          <div class="p-3 hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+            <!-- Left Info Block -->
+            <div class="w-full lg:w-1/4 flex justify-between lg:block items-center">
+              <div>
+                <h5 class="text-xs font-bold text-slate-800 dark:text-white">${paper.name}</h5>
+                <p class="text-[10px] text-slate-400 font-medium mt-0.5">Code: <span class="font-mono font-bold">${paper.code}</span> | Assigned: <span class="font-semibold text-slate-600 dark:text-slate-300">${operatorName}</span></p>
+              </div>
+              <div class="lg:mt-1.5 shrink-0">
+                ${priorityBadge}
+              </div>
+            </div>
+
+            <!-- Right Stepper Visualizer block -->
+            <div class="flex-1 flex items-center select-none">
+              ${stepperHtml}
+            </div>
+          </div>
+        `;
+      });
+    }
+
+
+    /* =========================================================================
+       🛠️ ORIGINAL RELATIONAL CONFIG PANEL ENGINE
+       ========================================================================= */
+
+    function renderConfigPanel() {
+      document.getElementById('uni-total-badge').innerText = `${state.universities.length} Active`;
+      document.getElementById('exam-total-badge').innerText = `${state.exams.length} Active`;
+      document.getElementById('user-total-badge').innerText = `${state.users.length} Active`;
+
+      // Universities list rendering
+      const uniList = document.getElementById('config-uni-list');
+      let uniHtml = '';
+      state.universities.forEach((uni, idx) => {
+        uniHtml += `
+          <li class="flex items-center justify-between py-1.5 px-2 text-xs">
+            <span class="font-medium text-slate-700 dark:text-slate-200 truncate max-w-[200px]">${uni}</span>
+            <button onclick="removeConfigEntity('university', ${idx})" class="text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 p-1 rounded transition-all">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7"></path>
+              </svg>
+            </button>
+          </li>
+        `;
+      });
+      uniList.innerHTML = uniHtml;
+
+      // Exam sessions list rendering
+      const examList = document.getElementById('config-exam-list');
+      let examHtml = '';
+      state.exams.forEach((exam, idx) => {
+        examHtml += `
+          <li class="py-2 px-2 text-xs">
+            <div class="flex items-start justify-between">
+              <div class="overflow-hidden pr-2">
+                <span class="font-bold text-slate-800 dark:text-slate-200 block truncate" title="${exam.name}">${exam.name}</span>
+                <span class="inline-block text-[10px] text-brand-500 font-semibold mb-1 truncate max-w-[170px]" title="${exam.university}">${exam.university}</span>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-0.5 mt-1 text-[9px] text-slate-400 dark:text-slate-500 font-mono">
+                  <span>Start: ${exam.startDate ? formatDateString(exam.startDate) : '-'}</span>
+                  <span>End: ${exam.endDate ? formatDateString(exam.endDate) : '-'}</span>
+                  <span>Recv: ${exam.receiveDate ? formatDateString(exam.receiveDate) : '-'}</span>
+                  <span>Due: ${exam.dueDate ? formatDateString(exam.dueDate) : '-'}</span>
+                </div>
+              </div>
+              <button onclick="removeConfigEntity('exam', ${idx})" class="text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 p-1 rounded transition-all shrink-0">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7"></path>
+                </svg>
+              </button>
+            </div>
+          </li>
+        `;
+      });
+      examList.innerHTML = examHtml;
+
+      // Users/Operators list rendering
+      const userList = document.getElementById('config-user-list');
+      let userHtml = '';
+      state.users.forEach((usr, idx) => {
+        userHtml += `
+          <li class="flex items-center justify-between py-1.5 px-2 text-xs">
+            <div class="flex flex-col">
+              <span class="font-semibold text-slate-700 dark:text-slate-200">${usr.name}</span>
+              <span class="text-[9px] text-slate-400 font-mono uppercase">${usr.role}</span>
+            </div>
+            <button onclick="removeOperator(${idx})" class="text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 p-1 rounded transition-all">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7"></path>
+              </svg>
+            </button>
+          </li>
+        `;
+      });
+      userList.innerHTML = userHtml;
+    }
+
+    // Config creation dynamic triggers
+    function handleConfigAdd(e, type) {
+      e.preventDefault();
+      
+      if (type === 'university') {
+        const input = document.getElementById('config-uni-input');
+        const value = input.value.trim();
+        if (value) {
+          if (state.universities.includes(value)) {
+            showToast("This University already exists in tracking setup", "warning");
+            return;
+          }
+          state.universities.push(value);
+          input.value = '';
+          showToast(`"${value}" added as a recognized University flow`, "success");
+          
+          populateConfigUniSelector();
+        }
+      } else if (type === 'exam') {
+        const uni = document.getElementById('config-exam-uni').value;
+        const name = document.getElementById('config-exam-name').value.trim();
+        const startDate = document.getElementById('config-exam-start').value;
+        const endDate = document.getElementById('config-exam-end').value;
+        const receiveDate = document.getElementById('config-exam-recv').value;
+        const dueDate = document.getElementById('config-exam-due').value;
+
+        if (!uni) {
+          showToast("Please link this session to a University first", "warning");
+          return;
+        }
+
+        const exists = state.exams.some(e => e.name.toLowerCase() === name.toLowerCase() && e.university === uni);
+        if (exists) {
+          showToast(`An exam session named "${name}" is already linked under "${uni}"`, "warning");
+          return;
+        }
+
+        const newExam = {
+          id: 'e_' + Date.now(),
+          name,
+          university: uni,
+          startDate,
+          endDate,
+          receiveDate,
+          dueDate
+        };
+
+        state.exams.push(newExam);
+        
+        document.getElementById('config-exam-name').value = '';
+        document.getElementById('config-exam-start').value = '';
+        document.getElementById('config-exam-end').value = '';
+        document.getElementById('config-exam-recv').value = '';
+        document.getElementById('config-exam-due').value = '';
+        document.getElementById('config-exam-uni').selectedIndex = 0;
+
+        showToast(`"${name}" is now registered under "${uni}"`, "success");
+      }
+
+      saveToStorage();
+      populateDropdowns();
+      renderWorkspace();
+    }
+
+    // Remove entity dynamic triggers
+    function removeConfigEntity(type, index) {
+      if (type === 'university') {
+        const uniName = state.universities[index];
+        const isLinked = state.papers.some(p => p.university === uniName);
+        if (isLinked) {
+          showToast(`Cannot remove "${uniName}" because papers are currently assigned to it`, "warning");
+          return;
+        }
+        state.universities.splice(index, 1);
+        populateConfigUniSelector();
+        showToast(`University entity removed successfully`, "info");
+      } else if (type === 'exam') {
+        const examObj = state.exams[index];
+        const isLinked = state.papers.some(p => p.examId === examObj.id || p.exam === examObj.name || p.exam === examObj.id);
+        if (isLinked) {
+          showToast(`Cannot remove "${examObj.name}" because active papers are linked under it`, "warning");
+          return;
+        }
+        state.exams.splice(index, 1);
+        showToast(`Exam session removed successfully`, "info");
+      }
+
+      saveToStorage();
+      populateDropdowns();
+      renderWorkspace();
+    }
+
+    // Add New Operator trigger
+    function handleOperatorAdd(e) {
+      e.preventDefault();
+      const nameInput = document.getElementById('config-user-name');
+      const roleSelect = document.getElementById('config-user-role');
+      
+      const name = nameInput.value.trim();
+      const role = roleSelect.value;
+
+      if (!name) return;
+
+      const userExists = state.users.some(u => u.name.toLowerCase() === name.toLowerCase());
+      if (userExists) {
+        showToast(`An operator named "${name}" is already registered`, "warning");
+        return;
+      }
+
+      const newUser = {
+        id: 'u_' + Date.now(),
+        name,
+        role
+      };
+
+      state.users.push(newUser);
+      saveToStorage();
+      
+      nameInput.value = '';
+      populateDropdowns();
+      updateBulkUserDropdown();
+      renderWorkspace();
+      showToast(`Registered "${name}" as active ${role}`, "success");
+    }
+
+    // Delete Operator Trigger
+    function removeOperator(index) {
+      const targetUser = state.users[index];
+      
+      showConfirm(`Confirm removing "${targetUser.name}"? Active tasks assigned to this operator will become unassigned.`, () => {
+        state.papers.forEach(p => {
+          if (p.assignedUserId === targetUser.id) {
+            p.assignedUserId = null;
+          }
+        });
+
+        state.users.splice(index, 1);
+        saveToStorage();
+        populateDropdowns();
+        updateBulkUserDropdown();
+        renderWorkspace();
+        showToast(`Removed operator "${targetUser.name}" and cleared related assignments`, "info");
+      });
+    }
+
+    // --- MODAL DIALOGS FOR DETAILED EDITING ---
+    function openEditModal(paperId) {
+      const paper = state.papers.find(p => p.id === paperId);
+      if (!paper) return;
+
+      document.getElementById('edit-paper-id').value = paper.id;
+      document.getElementById('edit-university').value = paper.university;
+      document.getElementById('edit-name').value = paper.name;
+      document.getElementById('edit-code').value = paper.code;
+      document.getElementById('edit-date').value = paper.date;
+      document.getElementById('edit-status').value = paper.status;
+
+      populateExamDropdown();
+      document.getElementById('edit-exam').value = paper.examId || paper.exam || "";
+
+      const editRoleSelector = document.getElementById('edit-role-filter');
+      editRoleSelector.value = "all";
+      updateEditUserDropdown();
+
+      document.getElementById('edit-operator').value = paper.assignedUserId || "";
+
+      const modal = document.getElementById('edit-modal');
+      const card = document.getElementById('edit-modal-card');
+      
+      modal.classList.remove('opacity-0', 'pointer-events-none');
+      card.classList.remove('scale-95');
+      card.classList.add('scale-100');
+    }
+
+    function closeEditModal() {
+      const modal = document.getElementById('edit-modal');
+      const card = document.getElementById('edit-modal-card');
+      
+      modal.classList.add('opacity-0', 'pointer-events-none');
+      card.classList.remove('scale-100');
+      card.classList.add('scale-95');
+    }
+
+    function handleEditFormSubmit(e) {
+      e.preventDefault();
+
+      const id = document.getElementById('edit-paper-id').value;
+      const uni = document.getElementById('edit-university').value;
+      const examId = document.getElementById('edit-exam').value;
+      const name = document.getElementById('edit-name').value.trim();
+      const code = document.getElementById('edit-code').value.trim().toUpperCase();
+      const date = document.getElementById('edit-date').value;
+      const status = document.getElementById('edit-status').value;
+      const assignedUserId = document.getElementById('edit-operator').value || null;
+
+      const paperIndex = state.papers.findIndex(p => p.id === id);
+      if (paperIndex === -1) return;
+
+      const codeExists = state.papers.some(p => p.id !== id && p.code === code && p.examId === examId);
+      if (codeExists) {
+        showToast(`Code matches an existing registered exam paper flow`, "warning");
+        return;
+      }
+
+      state.papers[paperIndex] = {
+        ...state.papers[paperIndex],
+        university: uni,
+        examId: examId,
+        name,
+        code,
+        date,
+        status,
+        assignedUserId
+      };
+
+      saveToStorage();
+      renderWorkspace();
+      closeEditModal();
+      showToast(`Saved changes for "${name}" successfully`, "success");
+    }
+
+    // Dynamic Mock Logout action
+    function logoutMock() {
+      showToast("Session closed. Returning to landing desk...", "info");
+      setTimeout(() => {
+        resetMockData();
+      }, 1000);
+    }
+  </script>
+</body>
+</html>
