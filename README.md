@@ -59,6 +59,9 @@ Set these in the `backend` service:
 - `MONGO_DB_NAME=paper_tracker`
 - `ADMIN_USER_ID=adminbrc`
 - `ADMIN_PASSWORD=brc@123`
+- `MANAGER_USER_ID=managerbrc`
+- `MANAGER_PASSWORD=change-this`
+- `MANAGER_DISPLAY_NAME=Paper Tracker Manager`
 
 `FRONTEND_ORIGIN` is optional in this setup because the browser talks to the frontend service and the frontend proxies `/api` internally.
 
@@ -77,6 +80,7 @@ Set this in the `frontend` service if your backend service name is not exactly `
 ## Implemented
 
 - React routes for `papers`, `reports`, and `config`
+- Authenticated `manager` role with access to `papers` and `config`
 - FastAPI CRUD APIs for universities, exam sessions, operators, and papers
 - MongoDB-backed seed/reset flow using the original HTML mock data
 - Paper filters, pagination, edit modal, bulk updates, and bulk delete

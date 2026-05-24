@@ -18,6 +18,9 @@ class Settings:
     frontend_origin = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")
     admin_user_id = os.getenv("ADMIN_USER_ID", "adminbrc")
     admin_password = os.getenv("ADMIN_PASSWORD", "brc@123")
+    manager_user_id = os.getenv("MANAGER_USER_ID", "managerbrc")
+    manager_password = os.getenv("MANAGER_PASSWORD", "brc@123")
+    manager_display_name = os.getenv("MANAGER_DISPLAY_NAME", "Paper Tracker Manager")
 
 
 settings = Settings()

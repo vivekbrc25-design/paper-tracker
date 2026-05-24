@@ -19,10 +19,65 @@ if (storedToken) {
   setAuthToken(storedToken);
 }
 
+function formatValidationDetail(detail) {
+  if (!Array.isArray(detail) || detail.length === 0) {
+    return "";
+  }
+
+  return detail
+    .map((entry) => {
+      if (typeof entry === "string") {
+        return entry;
+      }
+
+      const location = Array.isArray(entry?.loc) ? entry.loc.join(" > ") : "";
+      const message = typeof entry?.msg === "string" ? entry.msg : "";
+
+      if (location && message) {
+        return `${location}: ${message}`;
+      }
+
+      return message || JSON.stringify(entry);
+    })
+    .filter(Boolean)
+    .join("; ");
+}
+
+function getErrorMessage(error) {
+  const responseData = error.response?.data;
+  const detail = responseData?.detail;
+
+  if (typeof detail === "string" && detail.trim()) {
+    return detail.trim();
+  }
+
+  const validationMessage = formatValidationDetail(detail);
+  if (validationMessage) {
+    return validationMessage;
+  }
+
+  if (typeof responseData?.message === "string" && responseData.message.trim()) {
+    return responseData.message.trim();
+  }
+
+  if (typeof responseData === "string" && responseData.trim()) {
+    return responseData.trim();
+  }
+
+  if (typeof error.message === "string" && error.message.trim() && !error.message.includes("status code")) {
+    return error.message.trim();
+  }
+
+  if (error.response?.status) {
+    return `Request failed (${error.response.status}).`;
+  }
+
+  return "Request failed.";
+}
+
 function unwrap(promise) {
   return promise.then((response) => response.data).catch((error) => {
-    const detail = error.response?.data?.detail;
-    throw new Error(typeof detail === "string" ? detail : "Request failed.");
+    throw new Error(getErrorMessage(error));
   });
 }
 

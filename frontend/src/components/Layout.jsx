@@ -1,21 +1,11 @@
+/* eslint-disable react/prop-types */
 import { useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 
+import { appRoleLabels, getAccessibleNavItems, pageTitles } from "../access.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useWorkspace } from "../context/WorkspaceContext.jsx";
 import { useFeedback } from "./Feedback.jsx";
-
-const navItems = [
-  { to: "/papers", label: "Paper Entry", key: "papers" },
-  { to: "/reports", label: "Reports & KPIs", key: "reports" },
-  { to: "/config", label: "Config Masters", key: "config" },
-];
-
-const titles = {
-  "/papers": "Paper Tracking Workspace",
-  "/reports": "Reports & Evaluation Insights",
-  "/config": "Configuration & Entities Master",
-};
 
 function NavIcon({ name }) {
   if (name === "reports") {
@@ -48,7 +38,9 @@ export function AppShell() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const workspaceTitle = titles[location.pathname] ?? "Paper Tracking Workspace";
+  const navItems = getAccessibleNavItems(user?.role);
+  const workspaceTitle = pageTitles[location.pathname] ?? "Paper Tracking Workspace";
+  const roleLabel = appRoleLabels[user?.role] ?? "User";
 
   const handleReset = async () => {
     const accepted = await confirm("Are you sure you want to restore all datasets to default templates?");
@@ -124,8 +116,8 @@ export function AppShell() {
               </div>
               {isSidebarExpanded && (
                 <div className="overflow-hidden">
-                  <h4 className="text-xs font-semibold text-slate-400">Admin</h4>
-                  <p className="truncate text-sm font-semibold text-slate-800 dark:text-slate-200">{user?.displayName ?? "Paper Tracker Admin"}</p>
+                  <h4 className="text-xs font-semibold text-slate-400">{roleLabel}</h4>
+                  <p className="truncate text-sm font-semibold text-slate-800 dark:text-slate-200">{user?.displayName ?? "Paper Tracker User"}</p>
                 </div>
               )}
             </div>
@@ -141,14 +133,16 @@ export function AppShell() {
             </div>
 
             <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={handleReset}
-                disabled={busy}
-                className="rounded-md bg-slate-100 px-2.5 py-1.5 text-xs text-slate-500 transition-all hover:bg-slate-200 hover:text-slate-800 disabled:opacity-50 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-100"
-              >
-                Reset Data
-              </button>
+              {user?.role === "admin" && (
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  disabled={busy}
+                  className="rounded-md bg-slate-100 px-2.5 py-1.5 text-xs text-slate-500 transition-all hover:bg-slate-200 hover:text-slate-800 disabled:opacity-50 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-100"
+                >
+                  Reset Data
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -165,7 +159,7 @@ export function AppShell() {
                 )}
               </button>
               <span className="hidden rounded-md bg-slate-100 px-2 py-1 text-xs text-slate-400 dark:bg-slate-800 md:inline">
-                {user?.displayName ?? "Paper Tracker Admin"} (<span className="text-slate-600 dark:text-slate-300">{user?.userId ?? "admin"}</span>)
+                {user?.displayName ?? "Paper Tracker User"} (<span className="text-slate-600 dark:text-slate-300">{user?.userId ?? "user"}</span>)
               </span>
               {busy && <span className="hidden text-xs text-brand-500 md:inline">Syncing workspace...</span>}
               <button

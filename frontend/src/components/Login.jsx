@@ -29,11 +29,11 @@ export function LoginPage() {
             </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-400">Paper Flow</p>
-              <h1 className="text-xl font-bold text-white">Admin Login</h1>
+              <h1 className="text-xl font-bold text-white">Workspace Login</h1>
             </div>
           </div>
 
-          <p className="mb-6 text-sm text-slate-400">Only the authorized Paper Tracker admin can access the workspace.</p>
+          <p className="mb-6 text-sm text-slate-400">Sign in with an authorized Paper Tracker account to access the workspace.</p>
 
           <form
             className="space-y-4"

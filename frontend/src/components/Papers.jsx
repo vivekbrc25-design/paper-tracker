@@ -5,6 +5,8 @@ import { useWorkspace } from "../context/WorkspaceContext.jsx";
 import { formatDateString, roleBadgeClasses, statusBadgeClasses, statuses, statusRoleMap } from "../utils.js";
 import { useFeedback } from "./Feedback.jsx";
 
+const ITEMS_PER_PAGE = 50;
+
 function OperatorBadge({ operator }) {
   if (!operator) {
     return <span className="text-[11px] italic text-slate-400 dark:text-slate-600">Unassigned</span>;
@@ -321,9 +323,9 @@ export function PapersPage() {
     return matchesUniversity && matchesExam && matchesDate && matchesOperator && matchesSearch;
   });
 
-  const totalPages = Math.max(1, Math.ceil(filteredPapers.length / 6));
+  const totalPages = Math.max(1, Math.ceil(filteredPapers.length / ITEMS_PER_PAGE));
   const currentPage = Math.min(page, totalPages);
-  const paginatedItems = filteredPapers.slice((currentPage - 1) * 6, currentPage * 6);
+  const paginatedItems = filteredPapers.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
   const allVisibleSelected = paginatedItems.length > 0 && paginatedItems.every((paper) => selectedIds.includes(paper.id));
   const selectedPapers = papers.filter((paper) => selectedIds.includes(paper.id));
   const selectedStatuses = [...new Set(selectedPapers.map((paper) => paper.status))];
@@ -713,7 +715,7 @@ export function PapersPage() {
                 const exam = exams.find((item) => item.id === paper.examId);
                 const selected = selectedIds.includes(paper.id);
                 const tooltip = exam ? `S: ${formatDateString(exam.startDate)} | E: ${formatDateString(exam.endDate)}\nRecv: ${formatDateString(exam.receiveDate)} | Due: ${formatDateString(exam.dueDate)}` : "No exam bounds set";
-                const paperTitle = paper.name?.trim() ? paper.name : "Paper name pending import";
+                const paperCaption = paper.name?.trim() ? paper.name : "Paper name pending import";
 
                 return (
                   <tr key={paper.id} className={`group transition-colors hover:bg-slate-50/70 dark:hover:bg-slate-800/40 ${selected ? "bg-brand-50/10 dark:bg-brand-950/10" : ""}`}>
@@ -722,9 +724,9 @@ export function PapersPage() {
                     </td>
                     <td className="px-4 py-2.5 font-medium text-slate-900 dark:text-white">
                       <button type="button" onClick={() => setEditingPaper(paper)} className="block text-left text-sm font-semibold hover:text-brand-500 dark:hover:text-brand-400">
-                        {paperTitle}
+                        {paper.code}
                       </button>
-                      <span className="mt-0.5 block font-mono text-[10px] text-slate-400 dark:text-slate-500">{paper.code}</span>
+                      <span className="mt-0.5 block text-[10px] text-slate-400 dark:text-slate-500">{paperCaption}</span>
                     </td>
                     <td className="px-4 py-2.5 text-xs text-slate-600 dark:text-slate-300">
                       <span className="block max-w-[170px] truncate font-semibold" title={paper.universityName}>
@@ -767,8 +769,8 @@ export function PapersPage() {
 
         <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/50 p-3 dark:border-slate-800/80 dark:bg-slate-900/20">
           <div className="text-xs text-slate-400">
-            Showing <span className="font-semibold text-slate-700 dark:text-slate-300">{filteredPapers.length ? (currentPage - 1) * 6 + 1 : 0}</span> to{" "}
-            <span className="font-semibold text-slate-700 dark:text-slate-300">{Math.min(currentPage * 6, filteredPapers.length)}</span> of{" "}
+            Showing <span className="font-semibold text-slate-700 dark:text-slate-300">{filteredPapers.length ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0}</span> to{" "}
+            <span className="font-semibold text-slate-700 dark:text-slate-300">{Math.min(currentPage * ITEMS_PER_PAGE, filteredPapers.length)}</span> of{" "}
             <span className="font-semibold text-slate-700 dark:text-slate-300">{filteredPapers.length}</span> papers
           </div>
           <div className="flex items-center gap-1.5">

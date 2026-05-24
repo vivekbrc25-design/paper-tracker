@@ -1,5 +1,7 @@
+/* eslint-disable react/prop-types */
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
+import { canAccessPath, getDefaultRoute } from "./access.js";
 import { ConfigPage } from "./components/Config.jsx";
 import { FeedbackProvider } from "./components/Feedback.jsx";
 import { AppShell } from "./components/Layout.jsx";
@@ -10,7 +12,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
 import { WorkspaceProvider } from "./context/WorkspaceContext.jsx";
 
 function ProtectedApp() {
-  const { checkingAuth, isAuthenticated } = useAuth();
+  const { checkingAuth, isAuthenticated, user } = useAuth();
 
   if (checkingAuth) {
     return (
@@ -28,14 +30,45 @@ function ProtectedApp() {
     <WorkspaceProvider>
       <Routes>
         <Route element={<AppShell />}>
-          <Route path="/" element={<Navigate replace to="/papers" />} />
-          <Route path="/papers" element={<PapersPage />} />
-          <Route path="/reports" element={<ReportsPage />} />
-          <Route path="/config" element={<ConfigPage />} />
+          <Route path="/" element={<Navigate replace to={getDefaultRoute(user?.role)} />} />
+          <Route
+            path="/papers"
+            element={
+              <AuthorizedRoute path="/papers">
+                <PapersPage />
+              </AuthorizedRoute>
+            }
+          />
+          <Route
+            path="/reports"
+            element={
+              <AuthorizedRoute path="/reports">
+                <ReportsPage />
+              </AuthorizedRoute>
+            }
+          />
+          <Route
+            path="/config"
+            element={
+              <AuthorizedRoute path="/config">
+                <ConfigPage />
+              </AuthorizedRoute>
+            }
+          />
         </Route>
       </Routes>
     </WorkspaceProvider>
   );
+}
+
+function AuthorizedRoute({ path, children }) {
+  const { user } = useAuth();
+
+  if (!canAccessPath(user?.role, path)) {
+    return <Navigate replace to={getDefaultRoute(user?.role)} />;
+  }
+
+  return children;
 }
 
 function App() {
