@@ -11,7 +11,7 @@ RUN npm run build
 FROM nginx:1.27-alpine
 
 ENV PORT=8080 \
-    BACKEND_URL=http://backend.railway.internal:8000
+    BACKEND_URL=""
 
 COPY nginx/default.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /app/dist /usr/share/nginx/html
