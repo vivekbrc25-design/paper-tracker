@@ -100,6 +100,7 @@ export function AnalyticsCheckPage() {
   const [uploadedFileName, setUploadedFileName] = useState("");
   const [parsing, setParsing] = useState(false);
   const [downloadingSample, setDownloadingSample] = useState(false);
+  const [downloadingReport, setDownloadingReport] = useState(false);
 
   useEffect(() => {
     if (!universities.length || !exams.length) {
@@ -268,6 +269,83 @@ export function AnalyticsCheckPage() {
     }
   };
 
+  const handleDownloadDiscrepancyReport = async () => {
+    if (!uploadedCodes.length) {
+      showToast("Upload a workbook first to generate the discrepancy report", "warning");
+      return;
+    }
+
+    setDownloadingReport(true);
+    try {
+      const workbook = await import("xlsx");
+      const exportWorkbook = workbook.utils.book_new();
+
+      const summaryRows = [
+        { Metric: "University", Value: selectedUniversity?.name ?? "-" },
+        { Metric: "Exam Session", Value: selectedExam?.name ?? "-" },
+        { Metric: "Source File", Value: uploadedFileName || "-" },
+        { Metric: "Uploaded Rows", Value: uploadedCodes.length },
+        { Metric: "Unique Uploaded Codes", Value: comparison.uniqueUploadedCodes.length },
+        { Metric: "Matched Codes", Value: comparison.matchedPapers.length },
+        { Metric: "Upload-only Codes", Value: comparison.uploadedOnlyCodes.length },
+        { Metric: "System-only Papers", Value: comparison.systemOnlyPapers.length },
+        { Metric: "Duplicate Upload Codes", Value: comparison.duplicateUploadCodes.length },
+        { Metric: "Coverage Rate", Value: `${comparison.coverageRate}%` },
+        { Metric: "Completed Matches", Value: comparison.completedMatches },
+        { Metric: "Completion Rate", Value: `${comparison.completionRate}%` },
+      ];
+
+      const uploadedOnlyRows = comparison.uploadedOnlyCodes.map((code) => ({
+        DiscrepancyType: "Present in upload, missing in system",
+        PaperCode: code,
+      }));
+
+      const systemOnlyRows = comparison.systemOnlyPapers.map((paper) => ({
+        DiscrepancyType: "Present in system, missing in upload",
+        PaperCode: paper.code,
+        PaperName: paper.name || "Paper name pending import",
+        Status: paper.status,
+        ExamDate: paper.date || "",
+      }));
+
+      const duplicateRows = comparison.duplicateUploadCodes.map((item) => ({
+        PaperCode: item.code,
+        RepeatedCount: item.count,
+      }));
+
+      const matchedRows = comparison.matchedPapers.map((paper) => ({
+        PaperCode: paper.code,
+        PaperName: paper.name || "Paper name pending import",
+        Status: paper.status,
+        Progress: `${paper.progress}%`,
+        Operator: paper.operatorName,
+        ExamDate: paper.date || "",
+      }));
+
+      workbook.utils.book_append_sheet(exportWorkbook, workbook.utils.json_to_sheet(summaryRows), "Summary");
+      workbook.utils.book_append_sheet(exportWorkbook, workbook.utils.json_to_sheet(uploadedOnlyRows), "Upload Missing");
+      workbook.utils.book_append_sheet(exportWorkbook, workbook.utils.json_to_sheet(systemOnlyRows), "System Missing");
+      workbook.utils.book_append_sheet(exportWorkbook, workbook.utils.json_to_sheet(duplicateRows), "Duplicate Uploads");
+      workbook.utils.book_append_sheet(exportWorkbook, workbook.utils.json_to_sheet(matchedRows), "Matched Papers");
+
+      const output = workbook.write(exportWorkbook, { bookType: "xlsx", type: "array" });
+      const blob = new Blob([output], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = "analytic-discrepancy-report.xlsx";
+      link.click();
+      window.URL.revokeObjectURL(blobUrl);
+      showToast("Downloaded discrepancy report workbook", "success");
+    } catch {
+      showToast("Unable to generate the discrepancy report right now", "error");
+    } finally {
+      setDownloadingReport(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-[260px] items-center justify-center rounded-2xl border border-slate-200 bg-white text-sm font-semibold text-slate-500 shadow-sm dark:border-slate-800/80 dark:bg-[#0f172a] dark:text-slate-300">
@@ -353,6 +431,17 @@ export function AnalyticsCheckPage() {
 
       {uploadedCodes.length > 0 ? (
         <>
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={handleDownloadDiscrepancyReport}
+              disabled={downloadingReport}
+              className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-emerald-900/50 dark:bg-emerald-950/20 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
+            >
+              {downloadingReport ? "Preparing Report..." : "Download Discrepancy Report"}
+            </button>
+          </div>
+
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
             <SummaryCard title="Uploaded Codes" value={comparison.uniqueUploadedCodes.length} hint={`${uploadedCodes.length} total rows read`} tone="bg-sky-500/10 text-sky-600 dark:text-sky-300" />
             <SummaryCard title="Matched" value={comparison.matchedPapers.length} hint={`${comparison.coverageRate}% coverage from uploaded file`} tone="bg-emerald-500/10 text-emerald-600 dark:text-emerald-300" />
