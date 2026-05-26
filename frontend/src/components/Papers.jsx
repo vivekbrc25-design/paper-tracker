@@ -1,4 +1,6 @@
+/* eslint-disable react/prop-types */
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { workspaceApi } from "../api.js";
 import { useWorkspace } from "../context/WorkspaceContext.jsx";
@@ -6,6 +8,7 @@ import { formatDateString, roleBadgeClasses, statusBadgeClasses, statuses, statu
 import { useFeedback } from "./Feedback.jsx";
 
 const ITEMS_PER_PAGE = 50;
+const ANALYTICS_CONTEXT_KEY = "paperflow_last_analytics_context";
 
 function OperatorBadge({ operator }) {
   if (!operator) {
@@ -262,6 +265,7 @@ export function PapersPage() {
   } = useWorkspace();
   const { showToast, confirm } = useFeedback();
   const importInputRef = useRef(null);
+  const navigate = useNavigate();
 
   const [filters, setFilters] = useState({
     universityId: "all",
@@ -304,6 +308,20 @@ export function PapersPage() {
       setBulkUserSelector("keep");
     }
   }, [selectedIds, papers, bulkStatus, bulkUserSelector, operators]);
+
+  useEffect(() => {
+    if (filters.universityId === "all" || filters.examId === "all") {
+      return;
+    }
+
+    localStorage.setItem(
+      ANALYTICS_CONTEXT_KEY,
+      JSON.stringify({
+        universityId: filters.universityId,
+        examId: filters.examId,
+      }),
+    );
+  }, [filters.universityId, filters.examId]);
 
   const visibleExams = exams.filter((exam) => filters.universityId === "all" || exam.universityId === filters.universityId);
   const filteredOperators = operators.filter((operator) => bulkRoleFilter === "all" || operator.role === bulkRoleFilter);
@@ -420,6 +438,17 @@ export function PapersPage() {
     } catch (importError) {
       showToast(importError.message, "error");
     }
+  };
+
+  const handleOpenAnalytics = () => {
+    const analyticsContext = getSelectedImportContext();
+    if (!analyticsContext) {
+      showToast("Select a university and exam session before running the analytic check", "warning");
+      return;
+    }
+
+    localStorage.setItem(ANALYTICS_CONTEXT_KEY, JSON.stringify(analyticsContext));
+    navigate("/papers/analytic-check", { state: { analyticsContext } });
   };
 
   const handleDeletePaper = async (paper) => {
@@ -601,6 +630,9 @@ export function PapersPage() {
               <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800 dark:text-white">Register New Paper Flow</h3>
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2">
+              <button type="button" onClick={handleOpenAnalytics} className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-[11px] font-semibold text-sky-700 transition-colors hover:bg-sky-100 dark:border-sky-900/50 dark:bg-sky-950/20 dark:text-sky-300 dark:hover:bg-sky-950/40">
+                Run Analytic Check
+              </button>
               <button type="button" onClick={handleDownloadSample} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-600 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
                 Download Sample
               </button>

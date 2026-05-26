@@ -1,4 +1,5 @@
 /* eslint-disable react/prop-types */
+import { Suspense, lazy } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import { canAccessPath, getDefaultRoute } from "./access.js";
@@ -10,6 +11,8 @@ import { PapersPage } from "./components/Papers.jsx";
 import { ReportsPage } from "./components/Reports.jsx";
 import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
 import { WorkspaceProvider } from "./context/WorkspaceContext.jsx";
+
+const AnalyticsCheckPage = lazy(() => import("./components/AnalyticsCheck.jsx").then((module) => ({ default: module.AnalyticsCheckPage })));
 
 function ProtectedApp() {
   const { checkingAuth, isAuthenticated, user } = useAuth();
@@ -40,6 +43,16 @@ function ProtectedApp() {
             }
           />
           <Route
+            path="/papers/analytic-check"
+            element={
+              <AuthorizedRoute path="/papers/analytic-check">
+                <Suspense fallback={<RouteLoadingMessage message="Loading analytics workspace..." />}>
+                  <AnalyticsCheckPage />
+                </Suspense>
+              </AuthorizedRoute>
+            }
+          />
+          <Route
             path="/reports"
             element={
               <AuthorizedRoute path="/reports">
@@ -58,6 +71,14 @@ function ProtectedApp() {
         </Route>
       </Routes>
     </WorkspaceProvider>
+  );
+}
+
+function RouteLoadingMessage({ message }) {
+  return (
+    <div className="flex min-h-[260px] items-center justify-center rounded-2xl border border-slate-200 bg-white text-sm font-semibold text-slate-500 shadow-sm dark:border-slate-800/80 dark:bg-[#0f172a] dark:text-slate-300">
+      {message}
+    </div>
   );
 }
 

@@ -6,6 +6,7 @@ export const appNavItems = [
 
 export const pageTitles = {
   "/papers": "Paper Tracking Workspace",
+  "/papers/analytic-check": "Workbook Comparison Analytics",
   "/reports": "Reports & Evaluation Insights",
   "/config": "Configuration & Entities Master",
 };
@@ -17,6 +18,7 @@ export const appRoleLabels = {
 
 export const routeRoleMap = {
   "/papers": ["admin", "manager"],
+  "/papers/analytic-check": ["admin", "manager"],
   "/reports": ["admin"],
   "/config": ["admin", "manager"],
 };
