@@ -7,13 +7,43 @@ export const statusRoleMap = {
   "Final Reading": "Final Reader",
 };
 
+export function normalizeDateValue(dateStr) {
+  if (!dateStr || typeof dateStr !== "string") {
+    return "";
+  }
+
+  const trimmed = dateStr.trim();
+  if (!trimmed) {
+    return "";
+  }
+
+  const isoDateMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s].*)?$/);
+  if (isoDateMatch) {
+    return `${isoDateMatch[1]}-${isoDateMatch[2]}-${isoDateMatch[3]}`;
+  }
+
+  const displayDateMatch = trimmed.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (displayDateMatch) {
+    return `${displayDateMatch[3]}-${displayDateMatch[2]}-${displayDateMatch[1]}`;
+  }
+
+  const slashDateMatch = trimmed.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (slashDateMatch) {
+    return `${slashDateMatch[3]}-${slashDateMatch[2]}-${slashDateMatch[1]}`;
+  }
+
+  return trimmed;
+}
+
 export function formatDateString(dateStr) {
-  if (!dateStr) {
+  const normalizedDate = normalizeDateValue(dateStr);
+  if (!normalizedDate) {
     return "-";
   }
-  const parts = dateStr.split("-");
+
+  const parts = normalizedDate.split("-");
   if (parts.length !== 3) {
-    return dateStr;
+    return normalizedDate;
   }
   return `${parts[2]}-${parts[1]}-${parts[0]}`;
 }

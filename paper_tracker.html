@@ -1147,7 +1147,7 @@
           matchExam = paper.examId === state.filters.exam || paper.exam === state.filters.exam;
         }
 
-        const matchDate = !state.filters.date || paper.date === state.filters.date;
+        const matchDate = !state.filters.date || normalizeDateValue(paper.date) === normalizeDateValue(state.filters.date);
         
         let matchOper = true;
         if (state.filters.operator === 'unassigned') {
@@ -1320,10 +1320,34 @@
     }
 
     // Human Readable Date Conversion
+    function normalizeDateValue(dateStr) {
+      if (!dateStr || typeof dateStr !== 'string') return '';
+      const trimmed = dateStr.trim();
+      if (!trimmed) return '';
+
+      const isoDateMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s].*)?$/);
+      if (isoDateMatch) {
+        return `${isoDateMatch[1]}-${isoDateMatch[2]}-${isoDateMatch[3]}`;
+      }
+
+      const displayDateMatch = trimmed.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+      if (displayDateMatch) {
+        return `${displayDateMatch[3]}-${displayDateMatch[2]}-${displayDateMatch[1]}`;
+      }
+
+      const slashDateMatch = trimmed.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+      if (slashDateMatch) {
+        return `${slashDateMatch[3]}-${slashDateMatch[2]}-${slashDateMatch[1]}`;
+      }
+
+      return trimmed;
+    }
+
     function formatDateString(dateStr) {
-      if (!dateStr) return "-";
-      const parts = dateStr.split('-');
-      if (parts.length !== 3) return dateStr;
+      const normalizedDate = normalizeDateValue(dateStr);
+      if (!normalizedDate) return "-";
+      const parts = normalizedDate.split('-');
+      if (parts.length !== 3) return normalizedDate;
       return `${parts[2]}-${parts[1]}-${parts[0]}`;
     }
 
@@ -1346,7 +1370,7 @@
         if (state.filters.exam !== 'all') {
           matchExam = paper.examId === state.filters.exam || paper.exam === state.filters.exam;
         }
-        const matchDate = !state.filters.date || paper.date === state.filters.date;
+        const matchDate = !state.filters.date || normalizeDateValue(paper.date) === normalizeDateValue(state.filters.date);
         let matchOper = true;
         if (state.filters.operator === 'unassigned') {
           matchOper = !paper.assignedUserId;
@@ -1480,7 +1504,7 @@
         code,
         university: uni,
         examId: examId,
-        date,
+        date: normalizeDateValue(date),
         status: "Typing",
         assignedUserId: null
       };
@@ -2314,7 +2338,7 @@
       document.getElementById('edit-university').value = paper.university;
       document.getElementById('edit-name').value = paper.name;
       document.getElementById('edit-code').value = paper.code;
-      document.getElementById('edit-date').value = paper.date;
+      document.getElementById('edit-date').value = normalizeDateValue(paper.date);
       document.getElementById('edit-status').value = paper.status;
 
       populateExamDropdown();
@@ -2370,7 +2394,7 @@
         examId: examId,
         name,
         code,
-        date,
+        date: normalizeDateValue(date),
         status,
         assignedUserId
       };

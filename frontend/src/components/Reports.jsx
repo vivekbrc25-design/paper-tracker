@@ -11,7 +11,7 @@ import { Bar, Doughnut } from "react-chartjs-2";
 import { useEffect, useMemo, useState } from "react";
 
 import { useWorkspace } from "../context/WorkspaceContext.jsx";
-import { formatDateString, getDueBadge, roleBadgeClasses, statuses } from "../utils.js";
+import { formatDateString, getDueBadge, normalizeDateValue, roleBadgeClasses, statuses } from "../utils.js";
 
 ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
@@ -80,7 +80,7 @@ export function ReportsPage() {
       papers.filter((paper) => {
         const matchesSession = filters.sessionId === "all" || paper.examId === filters.sessionId;
         const matchesStage = filters.stage === "all" || paper.status === filters.stage;
-        const matchesExamDate = !filters.examDate || paper.date === filters.examDate;
+        const matchesExamDate = !filters.examDate || normalizeDateValue(paper.date) === normalizeDateValue(filters.examDate);
         const matchesAssigned = matchesAssignedDate(paper, filters.assignedDate);
         const matchesSelectedOperator = matchesOperator(paper, filters.operatorId);
         const matchesSearch =

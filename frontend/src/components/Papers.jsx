@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 
 import { workspaceApi } from "../api.js";
 import { useWorkspace } from "../context/WorkspaceContext.jsx";
-import { formatDateString, roleBadgeClasses, statusBadgeClasses, statuses, statusRoleMap } from "../utils.js";
+import { formatDateString, normalizeDateValue, roleBadgeClasses, statusBadgeClasses, statuses, statusRoleMap } from "../utils.js";
 import { useFeedback } from "./Feedback.jsx";
 
 const ITEMS_PER_PAGE = 50;
@@ -65,6 +65,7 @@ function PaperEditModal({ paper, open, onClose, exams, universities, operators, 
 
     setDraft({
       ...paper,
+      date: normalizeDateValue(paper.date),
       assignedUserId: invalidAssignedOperator ? null : paper.assignedUserId,
     });
     setRoleFilter(expectedRole ?? "all");
@@ -183,7 +184,7 @@ function PaperEditModal({ paper, open, onClose, exams, universities, operators, 
               <label className="mb-1 block text-xs font-semibold text-slate-400 dark:text-slate-500">Exam Date</label>
               <input
                 type="date"
-                value={draft.date ?? ""}
+                value={normalizeDateValue(draft.date)}
                 onChange={(event) => setDraft((current) => ({ ...current, date: event.target.value }))}
                 className="w-full rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none dark:border-slate-700 dark:bg-[#1e293b] dark:text-slate-100"
               />
@@ -328,7 +329,7 @@ export function PapersPage() {
   const filteredPapers = papers.filter((paper) => {
     const matchesUniversity = filters.universityId === "all" || paper.universityId === filters.universityId;
     const matchesExam = filters.examId === "all" || paper.examId === filters.examId;
-    const matchesDate = !filters.date || paper.date === filters.date;
+    const matchesDate = !filters.date || normalizeDateValue(paper.date) === normalizeDateValue(filters.date);
     const matchesOperator =
       filters.operatorId === "all" ||
       (filters.operatorId === "unassigned" ? !paper.assignedUserId : paper.assignedUserId === filters.operatorId);
@@ -535,7 +536,7 @@ export function PapersPage() {
     <div className="space-y-4">
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800/80 dark:bg-[#0f172a]">
         <div className="flex flex-col gap-4">
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,2fr)_auto]">
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,2fr)]">
             <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-3 dark:border-blue-900/50 dark:bg-blue-950/20">
               <div className="mb-3 flex items-center gap-2">
                 <span className="inline-flex rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white">Required</span>
@@ -604,13 +605,6 @@ export function PapersPage() {
               </div>
             </div>
 
-            <div className="flex min-w-[150px] flex-col justify-between rounded-xl border border-slate-200 bg-white p-3 text-right shadow-sm dark:border-slate-800 dark:bg-slate-900/20">
-              <div>
-                <span className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Total Matching</span>
-                <span className="mt-1 block text-2xl font-bold text-slate-800 dark:text-brand-400">{filteredPapers.length}</span>
-              </div>
-              <p className="mt-3 text-[11px] text-slate-400 dark:text-slate-500">Choose the exam context first, then narrow the list only if needed.</p>
-            </div>
           </div>
         </div>
       </div>
@@ -662,6 +656,16 @@ export function PapersPage() {
       </div>
 
       <div className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#0f172a]">
+        <div className="flex flex-col gap-2 border-b border-slate-100 bg-slate-50/60 px-4 py-3 dark:border-slate-800/80 dark:bg-slate-900/30 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800 dark:text-white">Tracking Results</h3>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500">Choose the exam context first, then narrow the list only if needed.</p>
+          </div>
+          <div className="self-start rounded-full bg-brand-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-brand-600 dark:text-brand-400 sm:self-auto">
+            {filteredPapers.length} matching papers
+          </div>
+        </div>
+
         {selectedIds.length > 0 && (
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-brand-100 bg-brand-50 px-4 py-2.5 dark:border-brand-900/50 dark:bg-brand-950/30">
             <div className="text-xs font-semibold text-brand-700 dark:text-brand-400">{selectedIds.length} selected</div>

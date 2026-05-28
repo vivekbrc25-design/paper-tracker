@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import re
 from datetime import UTC, datetime
 from io import StringIO
 from uuid import uuid4
@@ -61,6 +62,50 @@ def prepare_document(payload: dict) -> dict:
     return doc
 
 
+def _normalize_date_value(value: str | None) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        return value
+
+    trimmed = value.strip()
+    if not trimmed:
+        return None
+
+    iso_date_match = re.match(r"^(\d{4})-(\d{2})-(\d{2})(?:[T\s].*)?$", trimmed)
+    if iso_date_match:
+        return f"{iso_date_match.group(1)}-{iso_date_match.group(2)}-{iso_date_match.group(3)}"
+
+    display_date_match = re.match(r"^(\d{2})-(\d{2})-(\d{4})$", trimmed)
+    if display_date_match:
+        return f"{display_date_match.group(3)}-{display_date_match.group(2)}-{display_date_match.group(1)}"
+
+    slash_date_match = re.match(r"^(\d{2})/(\d{2})/(\d{4})$", trimmed)
+    if slash_date_match:
+        return f"{slash_date_match.group(3)}-{slash_date_match.group(2)}-{slash_date_match.group(1)}"
+
+    return trimmed
+
+
+def _normalize_exam_dates(document: dict | None) -> dict | None:
+    if document is None:
+        return None
+
+    normalized = dict(document)
+    for key in ("startDate", "endDate", "receiveDate", "dueDate"):
+        normalized[key] = _normalize_date_value(normalized.get(key))
+    return normalized
+
+
+def _normalize_paper_dates(document: dict | None) -> dict | None:
+    if document is None:
+        return None
+
+    normalized = dict(document)
+    normalized["date"] = _normalize_date_value(normalized.get("date"))
+    return normalized
+
+
 def ensure_indexes(database) -> None:
     database[COLLECTIONS["universities"]].create_index("name", unique=True)
     database[COLLECTIONS["exams"]].create_index([("universityId", 1), ("name", 1)], unique=True)
@@ -93,9 +138,15 @@ def reset_defaults(database) -> dict:
 def get_bootstrap(database) -> dict:
     return {
         "universities": [serialize_document(doc) for doc in database[COLLECTIONS["universities"]].find().sort("name", 1)],
-        "exams": [serialize_document(doc) for doc in database[COLLECTIONS["exams"]].find().sort("name", 1)],
+        "exams": [
+            _normalize_exam_dates(serialize_document(doc))
+            for doc in database[COLLECTIONS["exams"]].find().sort("name", 1)
+        ],
         "operators": [serialize_document(doc) for doc in database[COLLECTIONS["operators"]].find().sort("name", 1)],
-        "papers": [serialize_document(doc) for doc in database[COLLECTIONS["papers"]].find().sort("date", -1)],
+        "papers": [
+            _normalize_paper_dates(serialize_document(doc))
+            for doc in database[COLLECTIONS["papers"]].find().sort("date", -1)
+        ],
     }
 
 
@@ -232,10 +283,10 @@ def create_exam(database, payload: ExamCreate) -> dict:
         "name": payload.name.strip(),
         "universityId": payload.universityId,
         "universityName": university["name"],
-        "startDate": payload.startDate,
-        "endDate": payload.endDate,
-        "receiveDate": payload.receiveDate,
-        "dueDate": payload.dueDate,
+        "startDate": _normalize_date_value(payload.startDate),
+        "endDate": _normalize_date_value(payload.endDate),
+        "receiveDate": _normalize_date_value(payload.receiveDate),
+        "dueDate": _normalize_date_value(payload.dueDate),
     }
     try:
         database[COLLECTIONS["exams"]].insert_one(prepare_document(document))
@@ -296,7 +347,7 @@ def create_paper(database, payload: PaperCreate) -> dict:
         "universityName": university["name"],
         "examId": payload.examId,
         "examName": exam["name"],
-        "date": payload.date,
+        "date": _normalize_date_value(payload.date),
         "status": payload.status,
         "assignedUserId": payload.assignedUserId,
         "assignmentHistory": [],
@@ -327,6 +378,7 @@ def update_paper(database, paper_id: str, payload: PaperUpdate) -> dict:
         updated["code"] = updated["code"].strip().upper()
     if "name" in updated:
         updated["name"] = updated["name"].strip() if updated["name"] else ""
+    updated["date"] = _normalize_date_value(updated.get("date"))
 
     university = universities_by_id.get(updated["universityId"])
     exam = exams_by_id.get(updated["examId"])
@@ -425,7 +477,7 @@ def import_papers(database, university_id: str, exam_id: str, csv_content: str) 
 
         code = (row.get(code_key) or "").strip().upper()
         name = (row.get(name_key) or "").strip() if name_key else ""
-        date = (row.get(date_key) or "").strip() if date_key else ""
+        date = _normalize_date_value((row.get(date_key) or "").strip()) if date_key else None
 
         if not code:
             raise ValueError(f"Row {row_index} is missing paperCode.")
@@ -454,7 +506,7 @@ def import_papers(database, university_id: str, exam_id: str, csv_content: str) 
                 "universityName": university["name"],
                 "examId": exam_id,
                 "examName": exam["name"],
-                "date": date or None,
+                "date": date,
                 "status": "Typing",
                 "assignedUserId": None,
                 "assignmentHistory": [],
