@@ -3,7 +3,8 @@ body {
   min-width: 320px;
   min-height: 100vh;
   font-family: "Inter", sans-serif;
-  background: #020617;
+  background: #f8fafc;
+  color: #0f172a;
 }
 
 #root {

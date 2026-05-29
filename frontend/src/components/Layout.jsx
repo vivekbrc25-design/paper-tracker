@@ -33,7 +33,7 @@ function NavIcon({ name }) {
 export function AppShell() {
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
   const { user, logout } = useAuth();
-  const { busy, theme, setTheme, resetWorkspace } = useWorkspace();
+  const { busy, resetWorkspace } = useWorkspace();
   const { confirm, showToast } = useFeedback();
   const location = useLocation();
   const navigate = useNavigate();
@@ -58,31 +58,31 @@ export function AppShell() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 transition-colors duration-200 dark:bg-slate-950 dark:text-slate-100">
+    <div className="min-h-screen bg-slate-100 text-slate-900 transition-colors duration-200">
       <div className="flex h-screen flex-1 overflow-hidden">
         <aside
-          className={`z-20 flex shrink-0 flex-col border-r border-slate-200 bg-white transition-all duration-300 dark:border-slate-800 dark:bg-[#0f172a] ${
+          className={`z-20 flex shrink-0 flex-col border-r border-slate-700 bg-slate-800 text-slate-100 transition-all duration-300 ${
             isSidebarExpanded ? "w-64" : "w-20"
           }`}
         >
-          <div className="flex items-center justify-between border-b border-slate-200 p-4 dark:border-slate-800">
+          <div className="flex items-center justify-between border-b border-slate-700 p-4">
             <div className="flex items-center gap-3 overflow-hidden">
-              <div className="shrink-0 rounded-lg bg-brand-500 p-2 text-white">
+              <div className="shrink-0 rounded-lg bg-white p-2 text-slate-900 shadow-sm">
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
               {isSidebarExpanded && (
                 <div>
-                  <h1 className="text-xs font-semibold uppercase tracking-wider text-slate-400">Paper Flow</h1>
-                  <p className="truncate text-sm font-bold text-slate-900 dark:text-white">Exam Control Desk</p>
+                  <h1 className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-300">Paper Flow</h1>
+                  <p className="truncate text-sm font-bold text-white">Exam Control Desk</p>
                 </div>
               )}
             </div>
             <button
               type="button"
               onClick={() => setIsSidebarExpanded((current) => !current)}
-              className="rounded p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+              className="rounded p-1.5 text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
             >
               <svg className={`h-4 w-4 transition-transform duration-300 ${isSidebarExpanded ? "rotate-0" : "rotate-180"}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
@@ -98,8 +98,8 @@ export function AppShell() {
                 className={({ isActive }) =>
                   `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                     isActive
-                      ? "bg-brand-50 text-brand-600 dark:bg-brand-950/40 dark:text-brand-500"
-                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-slate-100"
+                      ? "bg-white text-slate-900 shadow-sm"
+                      : "text-slate-300 hover:bg-white/10 hover:text-white"
                   }`
                 }
               >
@@ -109,27 +109,27 @@ export function AppShell() {
             ))}
           </nav>
 
-          <div className="border-t border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/50">
+          <div className="border-t border-slate-700 bg-slate-900/70 p-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-500 text-xs font-bold uppercase text-white shadow-inner">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-xs font-bold uppercase text-slate-900 shadow-inner">
                 AD
               </div>
               {isSidebarExpanded && (
                 <div className="overflow-hidden">
-                  <h4 className="text-xs font-semibold text-slate-400">{roleLabel}</h4>
-                  <p className="truncate text-sm font-semibold text-slate-800 dark:text-slate-200">{user?.displayName ?? "Paper Tracker User"}</p>
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400">{roleLabel}</h4>
+                  <p className="truncate text-sm font-semibold text-white">{user?.displayName ?? "Paper Tracker User"}</p>
                 </div>
               )}
             </div>
           </div>
         </aside>
 
-        <main className="flex flex-1 flex-col overflow-hidden bg-slate-50 dark:bg-[#020617]">
-          <header className="z-10 flex h-14 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-6 dark:border-slate-800 dark:bg-[#0f172a]">
+        <main className="flex flex-1 flex-col overflow-hidden bg-white">
+          <header className="z-10 flex h-16 shrink-0 items-center justify-between border-b border-slate-700 bg-slate-800 px-6">
             <div className="flex items-center gap-3">
-              <span className="hidden text-xs font-semibold uppercase tracking-wider text-brand-600 dark:text-brand-500 sm:inline-block">University Paper Flow</span>
-              <span className="hidden text-slate-300 dark:text-slate-700 sm:inline-block">/</span>
-              <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-200">{workspaceTitle}</h2>
+              <span className="hidden text-xs font-semibold uppercase tracking-[0.2em] text-slate-300 sm:inline-block">University Paper Flow</span>
+              <span className="hidden text-slate-500 sm:inline-block">/</span>
+              <h2 className="text-sm font-semibold text-white">{workspaceTitle}</h2>
             </div>
 
             <div className="flex items-center gap-3">
@@ -138,41 +138,26 @@ export function AppShell() {
                   type="button"
                   onClick={handleReset}
                   disabled={busy}
-                  className="rounded-md bg-slate-100 px-2.5 py-1.5 text-xs text-slate-500 transition-all hover:bg-slate-200 hover:text-slate-800 disabled:opacity-50 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-100"
+                  className="rounded-md border border-slate-600 bg-slate-700 px-2.5 py-1.5 text-xs text-slate-100 transition-all hover:bg-slate-600 disabled:opacity-50"
                 >
                   Reset Data
                 </button>
               )}
-              <button
-                type="button"
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-              >
-                {theme === "dark" ? (
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                  </svg>
-                ) : (
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.364l-.707.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
-                  </svg>
-                )}
-              </button>
-              <span className="hidden rounded-md bg-slate-100 px-2 py-1 text-xs text-slate-400 dark:bg-slate-800 md:inline">
-                {user?.displayName ?? "Paper Tracker User"} (<span className="text-slate-600 dark:text-slate-300">{user?.userId ?? "user"}</span>)
+              <span className="hidden rounded-md border border-slate-600 bg-slate-700/80 px-2 py-1 text-xs text-slate-200 md:inline">
+                {user?.displayName ?? "Paper Tracker User"} (<span className="text-white">{user?.userId ?? "user"}</span>)
               </span>
-              {busy && <span className="hidden text-xs text-brand-500 md:inline">Syncing workspace...</span>}
+              {busy && <span className="hidden text-xs text-slate-300 md:inline">Syncing workspace...</span>}
               <button
                 type="button"
                 onClick={handleLogout}
-                className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700"
+                className="rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 shadow-sm transition-all hover:bg-slate-100"
               >
                 Logout
               </button>
             </div>
           </header>
 
-          <div className="flex-1 overflow-y-auto p-4 md:p-6">
+          <div className="flex-1 overflow-y-auto bg-white p-4 md:p-6">
             <Outlet />
           </div>
         </main>

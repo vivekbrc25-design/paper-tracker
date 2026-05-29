@@ -51,31 +51,31 @@ export function formatDateString(dateStr) {
 export function statusBadgeClasses(status) {
   switch (status) {
     case "Typing":
-      return "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400 ring-blue-600/10";
+      return "bg-slate-900 text-white ring-slate-900/10";
     case "Proof Reading":
-      return "bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400 ring-amber-600/10";
+      return "bg-slate-700 text-white ring-slate-700/10";
     case "Correction":
-      return "bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-400 ring-rose-600/10";
+      return "bg-slate-800 text-white ring-slate-800/10";
     case "Final Reading":
-      return "bg-purple-50 text-purple-700 dark:bg-purple-950/50 dark:text-purple-400 ring-purple-600/10";
+      return "bg-slate-600 text-white ring-slate-600/10";
     case "Completed":
-      return "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 ring-emerald-600/10";
+      return "bg-black text-white ring-black/10";
     default:
-      return "bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-300 ring-slate-500/10";
+      return "bg-slate-200 text-slate-800 ring-slate-500/10";
   }
 }
 
 export function roleBadgeClasses(role) {
   if (role === "Proof Reader") {
-    return "text-amber-500 bg-amber-500/10";
+    return "text-slate-700 bg-slate-200";
   }
   if (role === "Corrector") {
-    return "text-rose-500 bg-rose-500/10";
+    return "text-slate-700 bg-slate-200";
   }
   if (role === "Final Reader") {
-    return "text-purple-500 bg-purple-500/10";
+    return "text-slate-700 bg-slate-200";
   }
-  return "text-blue-500 bg-blue-500/10";
+  return "text-slate-700 bg-slate-200";
 }
 
 export function getDueBadge(exam) {

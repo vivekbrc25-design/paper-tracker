@@ -18,11 +18,11 @@ export function WorkspaceProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [theme, setTheme] = useState(() => localStorage.getItem("paperflow_theme") ?? "dark");
+  const [theme, setTheme] = useState("light");
 
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", theme === "dark");
-    localStorage.setItem("paperflow_theme", theme);
+    document.documentElement.classList.remove("dark");
+    localStorage.setItem("paperflow_theme", "light");
   }, [theme]);
 
   const refreshWorkspace = async (initial = false) => {

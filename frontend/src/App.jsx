@@ -19,7 +19,7 @@ function ProtectedApp() {
 
   if (checkingAuth) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-sm font-semibold text-slate-300">
+      <div className="flex min-h-screen items-center justify-center bg-slate-100 text-sm font-semibold text-slate-700">
         Checking session...
       </div>
     );
@@ -76,7 +76,7 @@ function ProtectedApp() {
 
 function RouteLoadingMessage({ message }) {
   return (
-    <div className="flex min-h-[260px] items-center justify-center rounded-2xl border border-slate-200 bg-white text-sm font-semibold text-slate-500 shadow-sm dark:border-slate-800/80 dark:bg-[#0f172a] dark:text-slate-300">
+    <div className="flex min-h-[260px] items-center justify-center rounded-2xl border border-slate-200 bg-white text-sm font-semibold text-slate-600 shadow-sm">
       {message}
     </div>
   );

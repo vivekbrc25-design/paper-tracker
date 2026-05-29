@@ -56,7 +56,7 @@ export function ConfigPage() {
               <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">Universities</h3>
               <p className="text-xs text-slate-400">Add or remove recognized academic entities.</p>
             </div>
-            <span className="rounded bg-brand-50 px-2 py-1 text-xs font-bold text-brand-600 dark:bg-brand-950/40 dark:text-brand-400">{universities.length} Active</span>
+            <span className="rounded bg-slate-900 px-2 py-1 text-xs font-bold text-white">{universities.length} Active</span>
           </div>
 
           <form
@@ -75,7 +75,7 @@ export function ConfigPage() {
               placeholder="New University..."
               className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none dark:border-slate-700 dark:bg-[#1e293b] dark:text-slate-100"
             />
-            <button type="submit" className="shrink-0 rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-brand-600">
+            <button type="submit" className="shrink-0 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-slate-800">
               Add
             </button>
           </form>
@@ -102,7 +102,7 @@ export function ConfigPage() {
               <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">Exam Sessions</h3>
               <p className="text-xs text-slate-400">Define university-linked active semester schedules.</p>
             </div>
-            <span className="rounded bg-purple-50 px-2 py-1 text-xs font-bold text-purple-600 dark:bg-purple-950/40 dark:text-purple-400">{exams.length} Active</span>
+            <span className="rounded bg-slate-900 px-2 py-1 text-xs font-bold text-white">{exams.length} Active</span>
           </div>
 
           <form
@@ -147,7 +147,7 @@ export function ConfigPage() {
               <input type="date" value={examForm.receiveDate} onChange={(event) => setExamForm((current) => ({ ...current, receiveDate: event.target.value }))} className="w-full rounded-lg border border-slate-200 bg-white px-1.5 py-1 text-[11px] text-slate-800 focus:outline-none dark:border-slate-700 dark:bg-[#1e293b] dark:text-slate-100" />
               <input type="date" value={examForm.dueDate} onChange={(event) => setExamForm((current) => ({ ...current, dueDate: event.target.value }))} className="w-full rounded-lg border border-slate-200 bg-white px-1.5 py-1 text-[11px] text-slate-800 focus:outline-none dark:border-slate-700 dark:bg-[#1e293b] dark:text-slate-100" />
             </div>
-            <button type="submit" className="w-full rounded-lg bg-purple-500 py-1.5 text-xs font-semibold text-white shadow-md transition-all hover:bg-purple-600">
+            <button type="submit" className="w-full rounded-lg bg-slate-900 py-1.5 text-xs font-semibold text-white shadow-md transition-all hover:bg-slate-800">
               Add Exam Session
             </button>
           </form>
@@ -160,7 +160,7 @@ export function ConfigPage() {
                 <div className="flex items-start justify-between">
                   <div className="overflow-hidden pr-2">
                     <span className="block truncate font-bold text-slate-800 dark:text-slate-200">{exam.name}</span>
-                    <span className="mb-1 inline-block max-w-[170px] truncate text-[10px] font-semibold text-brand-500">{exam.universityName}</span>
+                    <span className="mb-1 inline-block max-w-[170px] truncate text-[10px] font-semibold text-slate-600">{exam.universityName}</span>
                     <div className="mt-1 grid grid-cols-1 gap-x-3 gap-y-0.5 text-[9px] font-mono text-slate-400 dark:text-slate-500 sm:grid-cols-2">
                       <span>Start: {formatDateString(exam.startDate)}</span>
                       <span>End: {formatDateString(exam.endDate)}</span>
@@ -185,7 +185,7 @@ export function ConfigPage() {
               <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">Workspace Operators</h3>
               <p className="text-xs text-slate-400">Register operators and link them to flow roles.</p>
             </div>
-            <span className="rounded bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">{operators.length} Active</span>
+            <span className="rounded bg-slate-900 px-2 py-1 text-xs font-bold text-white">{operators.length} Active</span>
           </div>
 
           <form
@@ -216,7 +216,7 @@ export function ConfigPage() {
                   </option>
                 ))}
               </select>
-              <button type="submit" className="shrink-0 rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-emerald-600">
+              <button type="submit" className="shrink-0 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-slate-800">
                 Register
               </button>
             </div>

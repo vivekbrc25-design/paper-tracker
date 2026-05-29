@@ -188,7 +188,7 @@ export function ReportsPage() {
               Refine reports by exam session, operator, stage, exam date, assigned date, and search to isolate exactly the workflow slice you want to inspect.
             </p>
           </div>
-          <div className="rounded-full bg-brand-500/10 px-3 py-1 text-[11px] font-semibold text-brand-500">
+          <div className="rounded-full bg-slate-900 px-3 py-1 text-[11px] font-semibold text-white">
             {analyzedPapers.length} Papers In Report
           </div>
         </div>
@@ -277,7 +277,7 @@ export function ReportsPage() {
                     search: "",
                   })
                 }
-                className="text-[10px] font-semibold text-brand-500 hover:underline"
+                className="text-[10px] font-semibold text-slate-700 hover:underline"
               >
                 Reset
               </button>
@@ -375,7 +375,7 @@ export function ReportsPage() {
             <h4 className="text-sm font-bold text-slate-900 dark:text-white">Operator Workload Ledger</h4>
             <p className="text-xs text-slate-400">Assignment counts recalculate from the active report filters.</p>
           </div>
-          <span className="rounded bg-brand-500/10 px-2 py-0.5 text-xs font-semibold text-brand-500">{visibleOperators.length} Operators In View</span>
+          <span className="rounded bg-slate-900 px-2 py-0.5 text-xs font-semibold text-white">{visibleOperators.length} Operators In View</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-left">
@@ -492,18 +492,18 @@ export function ReportsPage() {
                       const completed = index < activeStepIndex;
                       const active = index === activeStepIndex;
                       const circleClass = completed
-                        ? "border-emerald-500 bg-emerald-500 text-white"
+                        ? "border-slate-700 bg-slate-700 text-white"
                         : active
-                          ? "border-brand-500 bg-brand-500/10 text-brand-500 ring-4 ring-brand-500/20"
-                          : "border-slate-300 text-slate-400 dark:border-slate-700 dark:text-slate-600";
+                          ? "border-slate-900 bg-slate-900 text-white ring-4 ring-slate-200"
+                          : "border-slate-300 text-slate-400";
 
                       return (
                         <div key={step} className="relative flex flex-1 flex-col items-center text-center">
                           {index < statuses.length - 1 && (
-                            <div className={`absolute left-1/2 right-[-50%] top-3.5 z-0 h-0.5 ${index < activeStepIndex ? "bg-emerald-500" : "bg-slate-200 dark:bg-slate-800"}`} />
+                            <div className={`absolute left-1/2 right-[-50%] top-3.5 z-0 h-0.5 ${index < activeStepIndex ? "bg-slate-900" : "bg-slate-200"}`} />
                           )}
                           <div className={`z-10 flex h-7 w-7 items-center justify-center rounded-full border-2 text-xs font-bold ${circleClass}`}>{completed ? "✓" : index + 1}</div>
-                          <span className={`mt-1 hidden max-w-[80px] truncate text-[9px] sm:block ${active ? "font-bold text-brand-500 underline decoration-2" : "text-slate-400 dark:text-slate-600"}`}>{step}</span>
+                          <span className={`mt-1 hidden max-w-[80px] truncate text-[9px] sm:block ${active ? "font-bold text-slate-900 underline decoration-2" : "text-slate-400"}`}>{step}</span>
                         </div>
                       );
                     })}

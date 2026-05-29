@@ -239,7 +239,7 @@ function PaperEditModal({ paper, open, onClose, exams, universities, operators, 
             <button type="button" onClick={onClose} className="rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-500 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800">
               Cancel
             </button>
-            <button type="submit" className="rounded-lg bg-brand-500 px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-brand-600">
+            <button type="submit" className="rounded-lg bg-slate-900 px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-slate-800">
               Save Changes
             </button>
           </div>
@@ -272,6 +272,8 @@ export function PapersPage() {
     universityId: "all",
     examId: "all",
     operatorId: "all",
+    stage: "all",
+    assignmentState: "all",
     search: "",
     date: "",
   });
@@ -329,17 +331,21 @@ export function PapersPage() {
   const filteredPapers = papers.filter((paper) => {
     const matchesUniversity = filters.universityId === "all" || paper.universityId === filters.universityId;
     const matchesExam = filters.examId === "all" || paper.examId === filters.examId;
+    const matchesStage = filters.stage === "all" || paper.status === filters.stage;
     const matchesDate = !filters.date || normalizeDateValue(paper.date) === normalizeDateValue(filters.date);
-    const matchesOperator =
-      filters.operatorId === "all" ||
-      (filters.operatorId === "unassigned" ? !paper.assignedUserId : paper.assignedUserId === filters.operatorId);
+    const matchesOperator = filters.operatorId === "all" || paper.assignedUserId === filters.operatorId;
+    const hasAssignmentHistory = (paper.assignmentHistory ?? []).length > 0;
+    const matchesAssignmentState =
+      filters.assignmentState === "all" ||
+      (filters.assignmentState === "currentlyUnassigned" && !paper.assignedUserId) ||
+      (filters.assignmentState === "neverAssigned" && !hasAssignmentHistory);
     const query = filters.search.toLowerCase().trim();
     const matchesSearch =
       !query ||
       (paper.name ?? "").toLowerCase().includes(query) ||
       paper.code.toLowerCase().includes(query) ||
       paper.universityName.toLowerCase().includes(query);
-    return matchesUniversity && matchesExam && matchesDate && matchesOperator && matchesSearch;
+    return matchesUniversity && matchesExam && matchesStage && matchesDate && matchesOperator && matchesAssignmentState && matchesSearch;
   });
 
   const totalPages = Math.max(1, Math.ceil(filteredPapers.length / ITEMS_PER_PAGE));
@@ -351,10 +357,10 @@ export function PapersPage() {
   const fixedSelectedRole = bulkStatus === "keep" && selectedStatuses.length === 1 ? statusRoleMap[selectedStatuses[0]] ?? "all" : null;
 
   const stats = {
-    total: papers.length,
-    typing: papers.filter((paper) => paper.status === "Typing").length,
-    review: papers.filter((paper) => ["Proof Reading", "Correction", "Final Reading"].includes(paper.status)).length,
-    completed: papers.filter((paper) => paper.status === "Completed").length,
+    total: filteredPapers.length,
+    typing: filteredPapers.filter((paper) => paper.status === "Typing").length,
+    review: filteredPapers.filter((paper) => ["Proof Reading", "Correction", "Final Reading"].includes(paper.status)).length,
+    completed: filteredPapers.filter((paper) => paper.status === "Completed").length,
   };
 
   const onFilterChange = (key, value) => {
@@ -537,10 +543,10 @@ export function PapersPage() {
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800/80 dark:bg-[#0f172a]">
         <div className="flex flex-col gap-4">
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,2fr)]">
-            <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-3 dark:border-blue-900/50 dark:bg-blue-950/20">
+            <div className="rounded-xl border border-slate-200 bg-white p-3">
               <div className="mb-3 flex items-center gap-2">
-                <span className="inline-flex rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white">Required</span>
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Working Context</span>
+                <span className="inline-flex rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white">Required</span>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Working Context</span>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
@@ -569,17 +575,16 @@ export function PapersPage() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-800 dark:bg-slate-900/30">
+            <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
               <div className="mb-3 flex items-center gap-2">
-                <span className="inline-flex rounded-full bg-slate-700 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white dark:bg-slate-600">Optional</span>
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Refine Results</span>
+                <span className="inline-flex rounded-full bg-slate-700 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white">Optional</span>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Refine Results</span>
               </div>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)_minmax(0,1fr)]">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <div>
                   <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Filter Operator</label>
                   <select value={filters.operatorId} onChange={(event) => onFilterChange("operatorId", event.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none dark:border-slate-700 dark:bg-[#1e293b] dark:text-slate-100">
                     <option value="all">-- All Operators --</option>
-                    <option value="unassigned">-- Unassigned Papers --</option>
                     {operators.map((operator) => (
                       <option key={operator.id} value={operator.id}>
                         {operator.name} ({operator.role})
@@ -589,9 +594,21 @@ export function PapersPage() {
                 </div>
 
                 <div>
+                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Filter Stage</label>
+                  <select value={filters.stage} onChange={(event) => onFilterChange("stage", event.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none dark:border-slate-700 dark:bg-[#1e293b] dark:text-slate-100">
+                    <option value="all">-- All Stages --</option>
+                    {statuses.map((status) => (
+                      <option key={status} value={status}>
+                        {status}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
                   <div className="mb-1 flex items-center justify-between">
                     <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Exam Date</label>
-                    <button type="button" onClick={() => onFilterChange("date", "")} className="text-[10px] font-semibold text-brand-500 hover:underline">
+                    <button type="button" onClick={() => onFilterChange("date", "")} className="text-[10px] font-semibold text-slate-700 hover:underline">
                       Clear
                     </button>
                   </div>
@@ -603,6 +620,24 @@ export function PapersPage() {
                   <input value={filters.search} onChange={(event) => onFilterChange("search", event.target.value)} placeholder="Search Code, Name..." className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none dark:border-slate-700 dark:bg-[#1e293b] dark:text-slate-100" />
                 </div>
               </div>
+
+              <div className="mt-3">
+                <span className="mb-2 block text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Assignment State</span>
+                <div className="flex flex-wrap gap-4 text-xs text-slate-700">
+                  <label className="inline-flex items-center gap-2">
+                    <input type="radio" name="assignment-state" checked={filters.assignmentState === "all"} onChange={() => onFilterChange("assignmentState", "all")} />
+                    <span>All Papers</span>
+                  </label>
+                  <label className="inline-flex items-center gap-2">
+                    <input type="radio" name="assignment-state" checked={filters.assignmentState === "currentlyUnassigned"} onChange={() => onFilterChange("assignmentState", "currentlyUnassigned")} />
+                    <span>Currently Unassigned</span>
+                  </label>
+                  <label className="inline-flex items-center gap-2">
+                    <input type="radio" name="assignment-state" checked={filters.assignmentState === "neverAssigned"} onChange={() => onFilterChange("assignmentState", "neverAssigned")} />
+                    <span>Never Assigned At Any Stage</span>
+                  </label>
+                </div>
+              </div>
             </div>
 
           </div>
@@ -610,27 +645,27 @@ export function PapersPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard title="Total Papers" value={stats.total} tone="bg-blue-50 text-blue-500 dark:bg-blue-950/40" />
-        <StatCard title="Typing Status" value={stats.typing} tone="bg-blue-50 text-blue-500 dark:bg-blue-950/40" />
-        <StatCard title="In Evaluation" value={stats.review} tone="bg-purple-50 text-purple-500 dark:bg-purple-950/40" />
-        <StatCard title="Published" value={stats.completed} tone="bg-emerald-50 text-emerald-500 dark:bg-emerald-950/40" />
+        <StatCard title="Total Papers" value={stats.total} tone="bg-slate-100 text-slate-800" />
+        <StatCard title="Typing Status" value={stats.typing} tone="bg-slate-100 text-slate-800" />
+        <StatCard title="In Evaluation" value={stats.review} tone="bg-slate-100 text-slate-800" />
+        <StatCard title="Published" value={stats.completed} tone="bg-slate-100 text-slate-800" />
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#0f172a]">
         <div className="rounded-xl bg-slate-50/50 p-4 dark:bg-slate-900/30">
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="h-2 w-2 animate-pulse rounded-full bg-brand-500" />
+              <div className="h-2 w-2 animate-pulse rounded-full bg-slate-900" />
               <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800 dark:text-white">Register New Paper Flow</h3>
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2">
-              <button type="button" onClick={handleOpenAnalytics} className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-[11px] font-semibold text-sky-700 transition-colors hover:bg-sky-100 dark:border-sky-900/50 dark:bg-sky-950/20 dark:text-sky-300 dark:hover:bg-sky-950/40">
+              <button type="button" onClick={handleOpenAnalytics} className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-800 transition-colors hover:bg-slate-100">
                 Run Analytic Check
               </button>
               <button type="button" onClick={handleDownloadSample} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-600 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
                 Download Sample
               </button>
-              <button type="button" onClick={() => importInputRef.current?.click()} className="rounded-lg bg-brand-600 px-3 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-brand-700">
+              <button type="button" onClick={() => importInputRef.current?.click()} className="rounded-lg bg-slate-900 px-3 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-slate-800">
                 Import Papers
               </button>
               <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Future assignment timing starts automatically when an operator is assigned</span>
@@ -661,14 +696,14 @@ export function PapersPage() {
             <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800 dark:text-white">Tracking Results</h3>
             <p className="text-[11px] text-slate-400 dark:text-slate-500">Choose the exam context first, then narrow the list only if needed.</p>
           </div>
-          <div className="self-start rounded-full bg-brand-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-brand-600 dark:text-brand-400 sm:self-auto">
+          <div className="self-start rounded-full bg-slate-900 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-white sm:self-auto">
             {filteredPapers.length} matching papers
           </div>
         </div>
 
         {selectedIds.length > 0 && (
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-brand-100 bg-brand-50 px-4 py-2.5 dark:border-brand-900/50 dark:bg-brand-950/30">
-            <div className="text-xs font-semibold text-brand-700 dark:text-brand-400">{selectedIds.length} selected</div>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-100 px-4 py-2.5">
+            <div className="text-xs font-semibold text-slate-900">{selectedIds.length} selected</div>
             <div className="flex flex-wrap items-center gap-4 text-xs">
               <div className="flex items-center gap-1.5">
                 <span className="font-semibold text-slate-500 dark:text-slate-400">Move to Status</span>
@@ -709,7 +744,7 @@ export function PapersPage() {
                 </div>
               )}
               <div className="flex items-center gap-2">
-                <button type="button" onClick={handleBulkUpdate} className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-brand-700">
+                <button type="button" onClick={handleBulkUpdate} className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-slate-800">
                   Apply
                 </button>
                 <button type="button" onClick={handleBulkDelete} className="rounded-lg bg-rose-50 px-2.5 py-1.5 text-xs font-semibold text-rose-600 transition-all hover:bg-rose-100 dark:bg-rose-950/20 dark:text-rose-400 dark:hover:bg-rose-950/40">
@@ -754,12 +789,12 @@ export function PapersPage() {
                 const paperCaption = paper.name?.trim() ? paper.name : "Paper name pending import";
 
                 return (
-                  <tr key={paper.id} className={`group transition-colors hover:bg-slate-50/70 dark:hover:bg-slate-800/40 ${selected ? "bg-brand-50/10 dark:bg-brand-950/10" : ""}`}>
+                  <tr key={paper.id} className={`group transition-colors hover:bg-slate-50/70 ${selected ? "bg-slate-100/80" : ""}`}>
                     <td className="px-4 py-2.5 text-center">
                       <input type="checkbox" checked={selected} onChange={() => setSelectedIds((current) => current.includes(paper.id) ? current.filter((id) => id !== paper.id) : [...current, paper.id])} />
                     </td>
                     <td className="px-4 py-2.5 font-medium text-slate-900 dark:text-white">
-                      <button type="button" onClick={() => setEditingPaper(paper)} className="block text-left text-sm font-semibold hover:text-brand-500 dark:hover:text-brand-400">
+                      <button type="button" onClick={() => setEditingPaper(paper)} className="block text-left text-sm font-semibold hover:text-slate-600">
                         {paper.code}
                       </button>
                       <span className="mt-0.5 block text-[10px] text-slate-400 dark:text-slate-500">{paperCaption}</span>
@@ -781,7 +816,7 @@ export function PapersPage() {
                     </td>
                     <td className="px-4 py-2.5 text-right">
                       <div className="flex items-center justify-end gap-1.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
-                        <button type="button" onClick={() => setEditingPaper(paper)} className="rounded p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-brand-500 dark:hover:bg-slate-800 dark:hover:text-brand-400">
+                        <button type="button" onClick={() => setEditingPaper(paper)} className="rounded p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-800">
                           Edit
                         </button>
                         <button type="button" onClick={() => handleDeletePaper(paper)} className="rounded p-1 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-500 dark:hover:bg-rose-950/30">

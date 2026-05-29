@@ -51,12 +51,12 @@ export function FeedbackProvider({ children }) {
         {toasts.map((toast) => {
           const colors =
             toast.type === "success"
-              ? "border-emerald-500 bg-white text-slate-800 dark:bg-[#1e293b] dark:text-white"
+              ? "border-emerald-600 bg-white text-slate-900"
               : toast.type === "warning"
-                ? "border-amber-500 bg-white text-slate-800 dark:bg-[#1e293b] dark:text-white"
+                ? "border-amber-600 bg-white text-slate-900"
                 : toast.type === "error"
-                  ? "border-rose-500 bg-white text-slate-800 dark:bg-[#1e293b] dark:text-white"
-                  : "border-blue-500 bg-white text-slate-800 dark:bg-[#1e293b] dark:text-white";
+                  ? "border-rose-600 bg-white text-slate-900"
+                  : "border-slate-700 bg-white text-slate-900";
           return (
             <div
               key={toast.id}
@@ -74,12 +74,12 @@ export function FeedbackProvider({ children }) {
         }`}
       >
         <div
-          className={`w-full max-w-sm overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl transition-all duration-200 dark:border-slate-800/80 dark:bg-[#0f172a] ${
+          className={`w-full max-w-sm overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl transition-all duration-200 ${
             confirmState.open ? "scale-100" : "scale-95"
           }`}
         >
           <div className="p-5 text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-rose-100 text-rose-500 dark:bg-rose-950/40">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-slate-900 text-white">
               <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
@@ -88,22 +88,22 @@ export function FeedbackProvider({ children }) {
                 />
               </svg>
             </div>
-            <h3 className="mb-2 text-sm font-bold uppercase tracking-wider text-slate-800 dark:text-white">
+            <h3 className="mb-2 text-sm font-bold uppercase tracking-wider text-slate-900">
               {confirmState.title}
             </h3>
-            <p className="mb-6 text-xs text-slate-500 dark:text-slate-400">{confirmState.message}</p>
+            <p className="mb-6 text-xs text-slate-600">{confirmState.message}</p>
             <div className="flex items-center justify-center gap-2">
               <button
                 type="button"
                 onClick={() => closeConfirm(false)}
-                className="rounded-lg px-4 py-2 text-xs font-semibold text-slate-500 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+                className="rounded-lg px-4 py-2 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-100"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={() => closeConfirm(true)}
-                className="rounded-lg bg-rose-500 px-5 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:bg-rose-600"
+                className="rounded-lg bg-slate-900 px-5 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:bg-slate-800"
               >
                 Confirm
               </button>
