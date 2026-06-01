@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext.jsx";
 import { useWorkspace } from "../context/WorkspaceContext.jsx";
@@ -73,6 +74,7 @@ function SummaryCard({ title, value, hint }) {
 }
 
 export function VerificationPage() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { papers, universities, exams, operators, updatePaper, busy } = useWorkspace();
   const { showToast } = useFeedback();
@@ -284,13 +286,18 @@ export function VerificationPage() {
               Search by paper code, verify imported metadata against the hard copy, and record whether each paper is completed or incomplete.
             </p>
           </div>
-          <div className="inline-flex rounded-xl border border-slate-200 bg-slate-50 p-1 text-sm">
-            <button type="button" onClick={() => setActiveTab("verify")} className={`rounded-lg px-4 py-2 font-semibold ${activeTab === "verify" ? "bg-slate-900 text-white" : "text-slate-600"}`}>
-              Verify Papers
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" onClick={() => navigate("/papers/import")} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-[11px] font-semibold text-slate-800 transition-colors hover:bg-slate-100">
+              Open Import Studio
             </button>
-            <button type="button" onClick={() => setActiveTab("report")} className={`rounded-lg px-4 py-2 font-semibold ${activeTab === "report" ? "bg-slate-900 text-white" : "text-slate-600"}`}>
-              Verification Report
-            </button>
+            <div className="inline-flex rounded-xl border border-slate-200 bg-slate-50 p-1 text-sm">
+              <button type="button" onClick={() => setActiveTab("verify")} className={`rounded-lg px-4 py-2 font-semibold ${activeTab === "verify" ? "bg-slate-900 text-white" : "text-slate-600"}`}>
+                Verify Papers
+              </button>
+              <button type="button" onClick={() => setActiveTab("report")} className={`rounded-lg px-4 py-2 font-semibold ${activeTab === "report" ? "bg-slate-900 text-white" : "text-slate-600"}`}>
+                Verification Report
+              </button>
+            </div>
           </div>
         </div>
 
@@ -504,8 +511,8 @@ export function VerificationPage() {
               <div className="space-y-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
-                    <h4 className="text-3xl font-black tracking-tight text-slate-900 md:text-4xl">{selectedPaper.code}</h4>
-                    <p className="text-xl font-medium text-slate-500 md:text-2xl">{selectedPaper.name || "Paper name pending import"}</p>
+                    <h4 className="text-3xl font-black tracking-tight text-slate-900 md:text-4xl">{selectedPaper.course || "-"}</h4>
+                    <p className="text-xl font-medium text-slate-500 md:text-2xl">{selectedPaper.year || "-"}</p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <VerificationBadge paper={selectedPaper} />
@@ -535,46 +542,33 @@ export function VerificationPage() {
                 </div>
 
                 <div className="grid gap-3 md:grid-cols-2">
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <p className="text-sm font-semibold uppercase tracking-wider text-slate-400">Course</p>
-                    <p className="mt-2 text-2xl font-bold leading-tight text-slate-900 md:text-3xl">{selectedPaper.course || "-"}</p>
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 md:col-span-2">
+                    <p className="text-sm font-semibold uppercase tracking-wider text-slate-400">Paper Name</p>
+                    <p className="mt-2 text-2xl font-bold leading-tight text-slate-900 md:text-3xl">{selectedPaper.name || "-"}</p>
                   </div>
                   <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <p className="text-sm font-semibold uppercase tracking-wider text-slate-400">Year</p>
-                    <p className="mt-2 text-2xl font-bold leading-tight text-slate-900 md:text-3xl">{selectedPaper.year || "-"}</p>
+                    <p className="text-sm font-semibold uppercase tracking-wider text-slate-400">Paper Code</p>
+                    <p className="mt-2 text-2xl font-bold leading-tight text-slate-900 md:text-3xl">{selectedPaper.code || "-"}</p>
                   </div>
                   <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                     <p className="text-sm font-semibold uppercase tracking-wider text-slate-400">Paper Type</p>
                     <p className="mt-2 text-2xl font-bold leading-tight text-slate-900 md:text-3xl">{selectedPaper.paperType || "-"}</p>
                   </div>
                   <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <p className="text-sm font-semibold uppercase tracking-wider text-slate-400">Paper Title</p>
-                    <p className="mt-2 text-2xl font-bold leading-tight text-slate-900 md:text-3xl">{selectedPaper.paperTitle || "-"}</p>
-                  </div>
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <p className="text-sm font-semibold uppercase tracking-wider text-slate-400">Exam Date</p>
-                    <p className="mt-2 text-2xl font-bold leading-tight text-slate-900 md:text-3xl">{formatDateString(selectedPaper.date)}</p>
-                  </div>
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <p className="text-sm font-semibold uppercase tracking-wider text-slate-400">Exam Time</p>
-                    <p className="mt-2 text-2xl font-bold leading-tight text-slate-900 md:text-3xl">{selectedPaper.examTime || "-"}</p>
-                  </div>
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <p className="text-sm font-semibold uppercase tracking-wider text-slate-400">Marks</p>
+                    <p className="text-sm font-semibold uppercase tracking-wider text-slate-400">Max Marks</p>
                     <p className="mt-2 text-2xl font-bold leading-tight text-slate-900 md:text-3xl">{selectedPaper.marks || "-"}</p>
                   </div>
                   <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <p className="text-sm font-semibold uppercase tracking-wider text-slate-400">University / Exam</p>
-                    <p className="mt-2 text-2xl font-bold leading-tight text-slate-900 md:text-3xl">{selectedPaper.universityName}</p>
-                    <p className="mt-1 text-lg font-medium text-slate-500 md:text-xl">{selectedPaper.examName}</p>
+                    <p className="text-sm font-semibold uppercase tracking-wider text-slate-400">QTY</p>
+                    <p className="mt-2 text-2xl font-bold leading-tight text-slate-900 md:text-3xl">{selectedPaper.quantity || "-"}</p>
                   </div>
                   <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <p className="text-sm font-semibold uppercase tracking-wider text-slate-400">Examiner 1</p>
-                    <p className="mt-2 text-2xl font-bold leading-tight text-slate-900 md:text-3xl">{selectedPaper.examiner1 || "-"}</p>
+                    <p className="text-sm font-semibold uppercase tracking-wider text-slate-400">Subject Name</p>
+                    <p className="mt-2 text-2xl font-bold leading-tight text-slate-900 md:text-3xl">{selectedPaper.paperTitle || "-"}</p>
                   </div>
                   <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <p className="text-sm font-semibold uppercase tracking-wider text-slate-400">Examiner 2</p>
-                    <p className="mt-2 text-2xl font-bold leading-tight text-slate-900 md:text-3xl">{selectedPaper.examiner2 || "-"}</p>
+                    <p className="text-sm font-semibold uppercase tracking-wider text-slate-400">SCode</p>
+                    <p className="mt-2 text-2xl font-bold leading-tight text-slate-900 md:text-3xl">{selectedPaper.paperType || "-"}</p>
                   </div>
                 </div>
 

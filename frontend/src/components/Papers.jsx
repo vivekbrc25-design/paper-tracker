@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { workspaceApi } from "../api.js";
@@ -9,84 +9,6 @@ import { useFeedback } from "./Feedback.jsx";
 
 const ITEMS_PER_PAGE = 50;
 const ANALYTICS_CONTEXT_KEY = "paperflow_last_analytics_context";
-const IMPORT_HEADERS = ["paperCode", "paperName", "examDate", "course", "year", "paperType", "paperTitle", "examTime", "marks", "examiner1", "examiner2"];
-
-function normalizeImportHeader(header) {
-  return String(header ?? "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, "");
-}
-
-function escapeCsvValue(value) {
-  const text = String(value ?? "");
-  if (text.includes(",") || text.includes("\"") || text.includes("\n")) {
-    return `"${text.replaceAll("\"", "\"\"")}"`;
-  }
-  return text;
-}
-
-function buildCsvFromRows(rows) {
-  const lines = [IMPORT_HEADERS.join(",")];
-  rows.forEach((row) => {
-    lines.push(IMPORT_HEADERS.map((header) => escapeCsvValue(row[header] ?? "")).join(","));
-  });
-  return lines.join("\n");
-}
-
-async function normalizeImportFile(file) {
-  const lowerName = file.name.toLowerCase();
-  if (lowerName.endsWith(".csv")) {
-    return file;
-  }
-
-  if (!lowerName.endsWith(".xlsx") && !lowerName.endsWith(".xls")) {
-    throw new Error("Please upload a CSV or Excel file.");
-  }
-
-  const XLSX = await import("xlsx");
-  const buffer = await file.arrayBuffer();
-  const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
-  const rows = [];
-
-  workbook.SheetNames.forEach((sheetName) => {
-    const sheet = workbook.Sheets[sheetName];
-    const sheetRows = XLSX.utils.sheet_to_json(sheet, { defval: "", raw: false });
-
-    sheetRows.forEach((rawRow) => {
-      const normalizedEntries = Object.entries(rawRow).reduce((accumulator, [key, value]) => {
-        accumulator[normalizeImportHeader(key)] = String(value ?? "").trim();
-        return accumulator;
-      }, {});
-
-      const paperCode = normalizedEntries.papercode || normalizedEntries.code || "";
-      if (!paperCode) {
-        return;
-      }
-
-      rows.push({
-        paperCode,
-        paperName: normalizedEntries.papername || normalizedEntries.name || "",
-        examDate: normalizeDateValue(normalizedEntries.examdate || normalizedEntries.date || ""),
-        course: normalizedEntries.course || "",
-        year: normalizedEntries.year || "",
-        paperType: normalizedEntries.papertype || normalizedEntries.type || "",
-        paperTitle: normalizedEntries.papertitle || normalizedEntries.title || "",
-        examTime: normalizedEntries.examtime || normalizedEntries.time || "",
-        marks: normalizedEntries.marks || normalizedEntries.mm || normalizedEntries.maxmarks || "",
-        examiner1: normalizedEntries.examiner1 || "",
-        examiner2: normalizedEntries.examiner2 || "",
-      });
-    });
-  });
-
-  if (!rows.length) {
-    throw new Error("The uploaded workbook does not contain any paper rows.");
-  }
-
-  const csvContent = buildCsvFromRows(rows);
-  return new File([csvContent], `${file.name.replace(/\.(xlsx|xls)$/i, "")}.csv`, { type: "text/csv;charset=utf-8" });
-}
 
 function OperatorBadge({ operator }) {
   if (!operator) {
@@ -334,7 +256,6 @@ export function PapersPage() {
     exams,
     operators,
     createPaper,
-    importPapers,
     updatePaper,
     deletePaper,
     bulkUpdatePapers,
@@ -343,7 +264,6 @@ export function PapersPage() {
     error,
   } = useWorkspace();
   const { showToast, confirm } = useFeedback();
-  const importInputRef = useRef(null);
   const navigate = useNavigate();
 
   const [filters, setFilters] = useState({
@@ -509,27 +429,6 @@ export function PapersPage() {
     }
   };
 
-  const handleImportFileChange = async (event) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) {
-      return;
-    }
-
-    const importContext = getSelectedImportContext();
-    if (!importContext) {
-      return;
-    }
-
-    try {
-      const normalizedFile = await normalizeImportFile(file);
-      const summary = await importPapers(normalizedFile, importContext);
-      showToast(`Import complete: ${summary.created} created, ${summary.updated} updated`, "success");
-    } catch (importError) {
-      showToast(importError.message, "error");
-    }
-  };
-
   const handleOpenAnalytics = () => {
     const analyticsContext = getSelectedImportContext();
     if (!analyticsContext) {
@@ -539,6 +438,16 @@ export function PapersPage() {
 
     localStorage.setItem(ANALYTICS_CONTEXT_KEY, JSON.stringify(analyticsContext));
     navigate("/papers/analytic-check", { state: { analyticsContext } });
+  };
+
+  const handleOpenImportStudio = () => {
+    const importContext = getSelectedImportContext();
+    if (!importContext) {
+      return;
+    }
+
+    localStorage.setItem("paperflow_last_import_context", JSON.stringify(importContext));
+    navigate("/papers/import");
   };
 
   const handleDeletePaper = async (paper) => {
@@ -751,13 +660,12 @@ export function PapersPage() {
               <button type="button" onClick={handleDownloadSample} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-600 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
                 Download Sample
               </button>
-              <button type="button" onClick={() => importInputRef.current?.click()} className="rounded-lg bg-slate-900 px-3 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-slate-800">
+              <button type="button" onClick={handleOpenImportStudio} className="rounded-lg bg-slate-900 px-3 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-slate-800">
                 Import Papers
               </button>
               <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Future assignment timing starts automatically when an operator is assigned</span>
             </div>
           </div>
-          <input ref={importInputRef} type="file" accept=".csv,text/csv,.xlsx,.xls" className="hidden" onChange={handleImportFileChange} />
           <form onSubmit={handleCreatePaper} className="grid grid-cols-1 items-end gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-400 dark:text-slate-500">Paper Code *</label>
@@ -859,12 +767,12 @@ export function PapersPage() {
                   />
                 </th>
                 <th className="px-4 py-3">Paper</th>
-                <th className="px-4 py-3">Course</th>
-                <th className="px-4 py-3">Year</th>
-                <th className="px-4 py-3">Type / Title</th>
+                <th className="px-4 py-3">Course Name</th>
+                <th className="px-4 py-3">Annual / Semester</th>
+                <th className="px-4 py-3">Type / Subject</th>
                 <th className="px-4 py-3">University / Exam</th>
                 <th className="px-4 py-3">Exam Date</th>
-                <th className="px-4 py-3">Time / Marks</th>
+                <th className="px-4 py-3">Qty / Time / Marks</th>
                 <th className="px-4 py-3">Examiners</th>
                 <th className="px-4 py-3">Operator</th>
                 <th className="px-4 py-3 text-center">Status</th>
@@ -918,6 +826,7 @@ export function PapersPage() {
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-xs text-slate-500 dark:text-slate-400">{formatDateString(paper.date)}</td>
                     <td className="px-4 py-2.5 text-xs text-slate-600">
+                      <span className="block whitespace-nowrap">Qty: {paper.quantity || "-"}</span>
                       <span className="block whitespace-nowrap">{paper.examTime || "-"}</span>
                       <span className="block text-[10px] text-slate-400">Marks: {paper.marks || "-"}</span>
                     </td>

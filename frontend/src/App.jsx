@@ -7,6 +7,7 @@ import { ConfigPage } from "./components/Config.jsx";
 import { FeedbackProvider } from "./components/Feedback.jsx";
 import { AppShell } from "./components/Layout.jsx";
 import { LoginPage } from "./components/Login.jsx";
+import { PaperImportPage } from "./components/PaperImport.jsx";
 import { PapersPage } from "./components/Papers.jsx";
 import { ReportsPage } from "./components/Reports.jsx";
 import { VerificationPage } from "./components/Verification.jsx";
@@ -58,6 +59,14 @@ function ProtectedApp() {
             element={
               <AuthorizedRoute path="/papers/verification">
                 <VerificationPage />
+              </AuthorizedRoute>
+            }
+          />
+          <Route
+            path="/papers/import"
+            element={
+              <AuthorizedRoute path="/papers/import">
+                <PaperImportPage />
               </AuthorizedRoute>
             }
           />

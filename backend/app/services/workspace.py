@@ -112,6 +112,16 @@ def _normalize_header_key(header: str | None) -> str:
     return re.sub(r"[^a-z0-9]", "", header.strip().lower())
 
 
+def _format_paper_code(value: str | None) -> str:
+    if value is None:
+        return ""
+    return re.sub(r"\s+", " ", str(value).strip()).upper()
+
+
+def _paper_code_key(value: str | None) -> str:
+    return re.sub(r"\s+", "", _format_paper_code(value))
+
+
 def _clean_optional_text(value: str | None) -> str | None:
     if value is None:
         return None
@@ -121,11 +131,60 @@ def _clean_optional_text(value: str | None) -> str | None:
     return trimmed or None
 
 
+def _find_paper_by_exam_code(database, exam_id: str, code: str, exclude_id: str | None = None) -> dict | None:
+    code_key = _paper_code_key(code)
+    query = {"examId": exam_id, "codeKey": code_key}
+    if exclude_id:
+        query["id"] = {"$ne": exclude_id}
+
+    document = database[COLLECTIONS["papers"]].find_one(query)
+    if document:
+        return serialize_document(document)
+
+    for paper in database[COLLECTIONS["papers"]].find({"examId": exam_id}):
+        serialized = serialize_document(paper)
+        if exclude_id and serialized["id"] == exclude_id:
+            continue
+        if _paper_code_key(serialized.get("code")) == code_key:
+            return serialized
+    return None
+
+
 def ensure_indexes(database) -> None:
     database[COLLECTIONS["universities"]].create_index("name", unique=True)
     database[COLLECTIONS["exams"]].create_index([("universityId", 1), ("name", 1)], unique=True)
     database[COLLECTIONS["operators"]].create_index("name", unique=True)
+    database[COLLECTIONS["papers"]].update_many(
+        {},
+        [
+            {
+                "$set": {
+                    "code": {"$toUpper": {"$trim": {"input": {"$ifNull": ["$code", ""]}}}},
+                    "codeKey": {
+                        "$replaceAll": {
+                            "input": {
+                                "$replaceAll": {
+                                    "input": {
+                                        "$replaceAll": {
+                                            "input": {"$toUpper": {"$trim": {"input": {"$ifNull": ["$code", ""]}}}},
+                                            "find": " ",
+                                            "replacement": "",
+                                        }
+                                    },
+                                    "find": "\t",
+                                    "replacement": "",
+                                }
+                            },
+                            "find": "\n",
+                            "replacement": "",
+                        }
+                    },
+                }
+            }
+        ],
+    )
     database[COLLECTIONS["papers"]].create_index([("examId", 1), ("code", 1)], unique=True)
+    database[COLLECTIONS["papers"]].create_index([("examId", 1), ("codeKey", 1)], unique=True)
 
 
 def seed_defaults(database) -> None:
@@ -357,7 +416,8 @@ def create_paper(database, payload: PaperCreate) -> dict:
     document = {
         "id": uuid4().hex,
         "name": payload.name.strip() if payload.name else "",
-        "code": payload.code.strip().upper(),
+        "code": _format_paper_code(payload.code),
+        "codeKey": _paper_code_key(payload.code),
         "universityId": payload.universityId,
         "universityName": university["name"],
         "examId": payload.examId,
@@ -365,6 +425,7 @@ def create_paper(database, payload: PaperCreate) -> dict:
         "date": _normalize_date_value(payload.date),
         "course": _clean_optional_text(payload.course),
         "year": _clean_optional_text(payload.year),
+        "quantity": _clean_optional_text(payload.quantity),
         "paperType": _clean_optional_text(payload.paperType),
         "paperTitle": _clean_optional_text(payload.paperTitle),
         "examTime": _clean_optional_text(payload.examTime),
@@ -382,6 +443,9 @@ def create_paper(database, payload: PaperCreate) -> dict:
     }
     document = _normalize_assignment_for_status(document, operators_by_id)
     document["assignmentHistory"] = _reconcile_history({"status": payload.status, "assignedUserId": None, "assignmentHistory": []}, document, operators_by_id)
+    duplicate = _find_paper_by_exam_code(database, payload.examId, payload.code)
+    if duplicate:
+        raise ValueError("A paper with this code already exists under the selected exam session.")
     try:
         database[COLLECTIONS["papers"]].insert_one(prepare_document(document))
     except DuplicateKeyError as exc:
@@ -403,11 +467,12 @@ def update_paper(database, paper_id: str, payload: PaperUpdate) -> dict:
         updated[key] = value
 
     if "code" in updated and updated["code"]:
-        updated["code"] = updated["code"].strip().upper()
+        updated["code"] = _format_paper_code(updated["code"])
+        updated["codeKey"] = _paper_code_key(updated["code"])
     if "name" in updated:
         updated["name"] = updated["name"].strip() if updated["name"] else ""
     updated["date"] = _normalize_date_value(updated.get("date"))
-    for key in ("course", "year", "paperType", "paperTitle", "examTime", "marks", "examiner1", "examiner2", "verificationStatus", "verificationNote", "verificationBy"):
+    for key in ("course", "year", "quantity", "paperType", "paperTitle", "examTime", "marks", "examiner1", "examiner2", "verificationStatus", "verificationNote", "verificationBy"):
         updated[key] = _clean_optional_text(updated.get(key))
 
     university = universities_by_id.get(updated["universityId"])
@@ -422,9 +487,7 @@ def update_paper(database, paper_id: str, payload: PaperUpdate) -> dict:
     updated = _normalize_assignment_for_status(updated, operators_by_id)
     updated["assignmentHistory"] = _reconcile_history(existing, updated, operators_by_id)
 
-    duplicate = database[COLLECTIONS["papers"]].find_one(
-        {"examId": updated["examId"], "code": updated["code"], "id": {"$ne": paper_id}}
-    )
+    duplicate = _find_paper_by_exam_code(database, updated["examId"], updated["code"], exclude_id=paper_id)
     if duplicate:
         raise ValueError("A paper with this code already exists under the selected exam session.")
 
@@ -462,9 +525,9 @@ def bulk_delete_papers(database, payload: BulkDeleteRequest) -> None:
 def get_paper_import_sample() -> str:
     return "\n".join(
         [
-            "paperCode,paperName,examDate,course,year,paperType,paperTitle,examTime,marks,examiner1,examiner2",
-            "MAT-401,Advanced Calculus,2026-06-15,B.Sc.,First Year,Theory,Differential Calculus,9:00 AM To 12:00 PM,70,Dr A,Dr B",
-            "PHY-210,Engineering Physics,2026-06-17,B.Tech.,Second Year,Theory,Engineering Physics,2:00 PM To 5:00 PM,100,,",
+            "courseName,subjectName,paperName,paperCode,paperType,annualSemester,qty,examDate,examTime,marks,examiner1,examiner2",
+            "B.Sc.,Differential Calculus,Advanced Calculus,MAT-401,Theory,First Year,120,2026-06-15,9:00 AM To 12:00 PM,70,Dr A,Dr B",
+            "B.Tech.,Engineering Physics,Engineering Physics,PHY-210,Theory,Second Year,80,2026-06-17,2:00 PM To 5:00 PM,100,,",
         ]
     )
 
@@ -493,10 +556,11 @@ def import_papers(database, university_id: str, exam_id: str, csv_content: str) 
     code_key = header_map.get("papercode") or header_map.get("code")
     name_key = header_map.get("papername") or header_map.get("name")
     date_key = header_map.get("examdate") or header_map.get("date")
-    course_key = header_map.get("course")
-    year_key = header_map.get("year")
+    course_key = header_map.get("coursename") or header_map.get("course")
+    year_key = header_map.get("annualsemester") or header_map.get("semester") or header_map.get("year")
+    quantity_key = header_map.get("qty") or header_map.get("quantity")
     type_key = header_map.get("papertype") or header_map.get("type")
-    title_key = header_map.get("papertitle") or header_map.get("title")
+    title_key = header_map.get("subjectname") or header_map.get("papertitle") or header_map.get("title")
     time_key = header_map.get("examtime") or header_map.get("time")
     marks_key = header_map.get("marks") or header_map.get("mm") or header_map.get("maxmarks")
     examiner1_key = header_map.get("examiner1")
@@ -513,11 +577,12 @@ def import_papers(database, university_id: str, exam_id: str, csv_content: str) 
         if not any((value or "").strip() for value in row.values()):
             continue
 
-        code = (row.get(code_key) or "").strip().upper()
+        code = _format_paper_code(row.get(code_key))
         name = (row.get(name_key) or "").strip() if name_key else ""
         date = _normalize_date_value((row.get(date_key) or "").strip()) if date_key else None
         course = _clean_optional_text(row.get(course_key)) if course_key else None
         year = _clean_optional_text(row.get(year_key)) if year_key else None
+        quantity = _clean_optional_text(row.get(quantity_key)) if quantity_key else None
         paper_type = _clean_optional_text(row.get(type_key)) if type_key else None
         paper_title = _clean_optional_text(row.get(title_key)) if title_key else None
         exam_time = _clean_optional_text(row.get(time_key)) if time_key else None
@@ -528,9 +593,11 @@ def import_papers(database, university_id: str, exam_id: str, csv_content: str) 
         if not code:
             raise ValueError(f"Row {row_index} is missing paperCode.")
 
-        existing = serialize_document(database[COLLECTIONS["papers"]].find_one({"examId": exam_id, "code": code}))
+        existing = _find_paper_by_exam_code(database, exam_id, code)
         if existing:
             updated = dict(existing)
+            updated["code"] = code
+            updated["codeKey"] = _paper_code_key(code)
             if name_key:
                 updated["name"] = name
             if date_key:
@@ -539,6 +606,8 @@ def import_papers(database, university_id: str, exam_id: str, csv_content: str) 
                 updated["course"] = course
             if year_key:
                 updated["year"] = year
+            if quantity_key:
+                updated["quantity"] = quantity
             if type_key:
                 updated["paperType"] = paper_type
             if title_key:
@@ -564,6 +633,7 @@ def import_papers(database, university_id: str, exam_id: str, csv_content: str) 
                 "id": uuid4().hex,
                 "name": name,
                 "code": code,
+                "codeKey": _paper_code_key(code),
                 "universityId": university_id,
                 "universityName": university["name"],
                 "examId": exam_id,
@@ -571,6 +641,7 @@ def import_papers(database, university_id: str, exam_id: str, csv_content: str) 
                 "date": date,
                 "course": course,
                 "year": year,
+                "quantity": quantity,
                 "paperType": paper_type,
                 "paperTitle": paper_title,
                 "examTime": exam_time,
