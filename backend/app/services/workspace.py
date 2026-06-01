@@ -106,6 +106,21 @@ def _normalize_paper_dates(document: dict | None) -> dict | None:
     return normalized
 
 
+def _normalize_header_key(header: str | None) -> str:
+    if not header:
+        return ""
+    return re.sub(r"[^a-z0-9]", "", header.strip().lower())
+
+
+def _clean_optional_text(value: str | None) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        value = str(value)
+    trimmed = value.strip()
+    return trimmed or None
+
+
 def ensure_indexes(database) -> None:
     database[COLLECTIONS["universities"]].create_index("name", unique=True)
     database[COLLECTIONS["exams"]].create_index([("universityId", 1), ("name", 1)], unique=True)
@@ -348,6 +363,19 @@ def create_paper(database, payload: PaperCreate) -> dict:
         "examId": payload.examId,
         "examName": exam["name"],
         "date": _normalize_date_value(payload.date),
+        "course": _clean_optional_text(payload.course),
+        "year": _clean_optional_text(payload.year),
+        "paperType": _clean_optional_text(payload.paperType),
+        "paperTitle": _clean_optional_text(payload.paperTitle),
+        "examTime": _clean_optional_text(payload.examTime),
+        "marks": _clean_optional_text(payload.marks),
+        "examiner1": _clean_optional_text(payload.examiner1),
+        "examiner2": _clean_optional_text(payload.examiner2),
+        "verificationStatus": _clean_optional_text(payload.verificationStatus),
+        "verificationNote": _clean_optional_text(payload.verificationNote),
+        "verifiedAt": payload.verifiedAt,
+        "rejectedAt": payload.rejectedAt,
+        "verificationBy": _clean_optional_text(payload.verificationBy),
         "status": payload.status,
         "assignedUserId": payload.assignedUserId,
         "assignmentHistory": [],
@@ -379,6 +407,8 @@ def update_paper(database, paper_id: str, payload: PaperUpdate) -> dict:
     if "name" in updated:
         updated["name"] = updated["name"].strip() if updated["name"] else ""
     updated["date"] = _normalize_date_value(updated.get("date"))
+    for key in ("course", "year", "paperType", "paperTitle", "examTime", "marks", "examiner1", "examiner2", "verificationStatus", "verificationNote", "verificationBy"):
+        updated[key] = _clean_optional_text(updated.get(key))
 
     university = universities_by_id.get(updated["universityId"])
     exam = exams_by_id.get(updated["examId"])
@@ -432,9 +462,9 @@ def bulk_delete_papers(database, payload: BulkDeleteRequest) -> None:
 def get_paper_import_sample() -> str:
     return "\n".join(
         [
-            "paperCode,paperName,examDate",
-            "MAT-401,Advanced Calculus,2026-06-15",
-            "PHY-210,Engineering Physics,",
+            "paperCode,paperName,examDate,course,year,paperType,paperTitle,examTime,marks,examiner1,examiner2",
+            "MAT-401,Advanced Calculus,2026-06-15,B.Sc.,First Year,Theory,Differential Calculus,9:00 AM To 12:00 PM,70,Dr A,Dr B",
+            "PHY-210,Engineering Physics,2026-06-17,B.Tech.,Second Year,Theory,Engineering Physics,2:00 PM To 5:00 PM,100,,",
         ]
     )
 
@@ -459,10 +489,18 @@ def import_papers(database, university_id: str, exam_id: str, csv_content: str) 
     if not reader.fieldnames:
         raise ValueError("The import file is empty.")
 
-    header_map = {header.strip().lower(): header for header in reader.fieldnames if header}
-    code_key = header_map.get("papercode") or header_map.get("paper_code") or header_map.get("code")
-    name_key = header_map.get("papername") or header_map.get("paper_name") or header_map.get("name")
-    date_key = header_map.get("examdate") or header_map.get("exam_date") or header_map.get("date")
+    header_map = {_normalize_header_key(header): header for header in reader.fieldnames if header}
+    code_key = header_map.get("papercode") or header_map.get("code")
+    name_key = header_map.get("papername") or header_map.get("name")
+    date_key = header_map.get("examdate") or header_map.get("date")
+    course_key = header_map.get("course")
+    year_key = header_map.get("year")
+    type_key = header_map.get("papertype") or header_map.get("type")
+    title_key = header_map.get("papertitle") or header_map.get("title")
+    time_key = header_map.get("examtime") or header_map.get("time")
+    marks_key = header_map.get("marks") or header_map.get("mm") or header_map.get("maxmarks")
+    examiner1_key = header_map.get("examiner1")
+    examiner2_key = header_map.get("examiner2")
 
     if not code_key:
         raise ValueError("The CSV must include a paperCode column.")
@@ -478,6 +516,14 @@ def import_papers(database, university_id: str, exam_id: str, csv_content: str) 
         code = (row.get(code_key) or "").strip().upper()
         name = (row.get(name_key) or "").strip() if name_key else ""
         date = _normalize_date_value((row.get(date_key) or "").strip()) if date_key else None
+        course = _clean_optional_text(row.get(course_key)) if course_key else None
+        year = _clean_optional_text(row.get(year_key)) if year_key else None
+        paper_type = _clean_optional_text(row.get(type_key)) if type_key else None
+        paper_title = _clean_optional_text(row.get(title_key)) if title_key else None
+        exam_time = _clean_optional_text(row.get(time_key)) if time_key else None
+        marks = _clean_optional_text(row.get(marks_key)) if marks_key else None
+        examiner1 = _clean_optional_text(row.get(examiner1_key)) if examiner1_key else None
+        examiner2 = _clean_optional_text(row.get(examiner2_key)) if examiner2_key else None
 
         if not code:
             raise ValueError(f"Row {row_index} is missing paperCode.")
@@ -485,10 +531,26 @@ def import_papers(database, university_id: str, exam_id: str, csv_content: str) 
         existing = serialize_document(database[COLLECTIONS["papers"]].find_one({"examId": exam_id, "code": code}))
         if existing:
             updated = dict(existing)
-            if name:
+            if name_key:
                 updated["name"] = name
-            if date:
+            if date_key:
                 updated["date"] = date
+            if course_key:
+                updated["course"] = course
+            if year_key:
+                updated["year"] = year
+            if type_key:
+                updated["paperType"] = paper_type
+            if title_key:
+                updated["paperTitle"] = paper_title
+            if time_key:
+                updated["examTime"] = exam_time
+            if marks_key:
+                updated["marks"] = marks
+            if examiner1_key:
+                updated["examiner1"] = examiner1
+            if examiner2_key:
+                updated["examiner2"] = examiner2
             updated["universityId"] = university_id
             updated["universityName"] = university["name"]
             updated["examId"] = exam_id
@@ -507,6 +569,19 @@ def import_papers(database, university_id: str, exam_id: str, csv_content: str) 
                 "examId": exam_id,
                 "examName": exam["name"],
                 "date": date,
+                "course": course,
+                "year": year,
+                "paperType": paper_type,
+                "paperTitle": paper_title,
+                "examTime": exam_time,
+                "marks": marks,
+                "examiner1": examiner1,
+                "examiner2": examiner2,
+                "verificationStatus": None,
+                "verificationNote": None,
+                "verifiedAt": None,
+                "rejectedAt": None,
+                "verificationBy": None,
                 "status": "Typing",
                 "assignedUserId": None,
                 "assignmentHistory": [],

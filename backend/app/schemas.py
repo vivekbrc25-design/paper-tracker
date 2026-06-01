@@ -73,6 +73,19 @@ class PaperBase(BaseModel):
     universityId: str
     examId: str
     date: str | None = None
+    course: str | None = Field(default=None, max_length=240)
+    year: str | None = Field(default=None, max_length=120)
+    paperType: str | None = Field(default=None, max_length=160)
+    paperTitle: str | None = Field(default=None, max_length=240)
+    examTime: str | None = Field(default=None, max_length=120)
+    marks: str | None = Field(default=None, max_length=40)
+    examiner1: str | None = Field(default=None, max_length=400)
+    examiner2: str | None = Field(default=None, max_length=400)
+    verificationStatus: str | None = Field(default=None, max_length=40)
+    verificationNote: str | None = Field(default=None, max_length=1000)
+    verifiedAt: datetime | None = None
+    rejectedAt: datetime | None = None
+    verificationBy: str | None = Field(default=None, max_length=160)
     status: str = "Typing"
     assignedUserId: str | None = None
 
@@ -87,6 +100,19 @@ class PaperUpdate(BaseModel):
     universityId: str | None = None
     examId: str | None = None
     date: str | None = None
+    course: str | None = None
+    year: str | None = None
+    paperType: str | None = None
+    paperTitle: str | None = None
+    examTime: str | None = None
+    marks: str | None = None
+    examiner1: str | None = None
+    examiner2: str | None = None
+    verificationStatus: str | None = None
+    verificationNote: str | None = None
+    verifiedAt: datetime | None = None
+    rejectedAt: datetime | None = None
+    verificationBy: str | None = None
     status: str | None = None
     assignedUserId: str | None = None
 

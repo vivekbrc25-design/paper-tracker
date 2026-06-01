@@ -9,6 +9,84 @@ import { useFeedback } from "./Feedback.jsx";
 
 const ITEMS_PER_PAGE = 50;
 const ANALYTICS_CONTEXT_KEY = "paperflow_last_analytics_context";
+const IMPORT_HEADERS = ["paperCode", "paperName", "examDate", "course", "year", "paperType", "paperTitle", "examTime", "marks", "examiner1", "examiner2"];
+
+function normalizeImportHeader(header) {
+  return String(header ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function escapeCsvValue(value) {
+  const text = String(value ?? "");
+  if (text.includes(",") || text.includes("\"") || text.includes("\n")) {
+    return `"${text.replaceAll("\"", "\"\"")}"`;
+  }
+  return text;
+}
+
+function buildCsvFromRows(rows) {
+  const lines = [IMPORT_HEADERS.join(",")];
+  rows.forEach((row) => {
+    lines.push(IMPORT_HEADERS.map((header) => escapeCsvValue(row[header] ?? "")).join(","));
+  });
+  return lines.join("\n");
+}
+
+async function normalizeImportFile(file) {
+  const lowerName = file.name.toLowerCase();
+  if (lowerName.endsWith(".csv")) {
+    return file;
+  }
+
+  if (!lowerName.endsWith(".xlsx") && !lowerName.endsWith(".xls")) {
+    throw new Error("Please upload a CSV or Excel file.");
+  }
+
+  const XLSX = await import("xlsx");
+  const buffer = await file.arrayBuffer();
+  const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
+  const rows = [];
+
+  workbook.SheetNames.forEach((sheetName) => {
+    const sheet = workbook.Sheets[sheetName];
+    const sheetRows = XLSX.utils.sheet_to_json(sheet, { defval: "", raw: false });
+
+    sheetRows.forEach((rawRow) => {
+      const normalizedEntries = Object.entries(rawRow).reduce((accumulator, [key, value]) => {
+        accumulator[normalizeImportHeader(key)] = String(value ?? "").trim();
+        return accumulator;
+      }, {});
+
+      const paperCode = normalizedEntries.papercode || normalizedEntries.code || "";
+      if (!paperCode) {
+        return;
+      }
+
+      rows.push({
+        paperCode,
+        paperName: normalizedEntries.papername || normalizedEntries.name || "",
+        examDate: normalizeDateValue(normalizedEntries.examdate || normalizedEntries.date || ""),
+        course: normalizedEntries.course || "",
+        year: normalizedEntries.year || "",
+        paperType: normalizedEntries.papertype || normalizedEntries.type || "",
+        paperTitle: normalizedEntries.papertitle || normalizedEntries.title || "",
+        examTime: normalizedEntries.examtime || normalizedEntries.time || "",
+        marks: normalizedEntries.marks || normalizedEntries.mm || normalizedEntries.maxmarks || "",
+        examiner1: normalizedEntries.examiner1 || "",
+        examiner2: normalizedEntries.examiner2 || "",
+      });
+    });
+  });
+
+  if (!rows.length) {
+    throw new Error("The uploaded workbook does not contain any paper rows.");
+  }
+
+  const csvContent = buildCsvFromRows(rows);
+  return new File([csvContent], `${file.name.replace(/\.(xlsx|xls)$/i, "")}.csv`, { type: "text/csv;charset=utf-8" });
+}
 
 function OperatorBadge({ operator }) {
   if (!operator) {
@@ -344,6 +422,10 @@ export function PapersPage() {
       !query ||
       (paper.name ?? "").toLowerCase().includes(query) ||
       paper.code.toLowerCase().includes(query) ||
+      (paper.course ?? "").toLowerCase().includes(query) ||
+      (paper.year ?? "").toLowerCase().includes(query) ||
+      (paper.paperType ?? "").toLowerCase().includes(query) ||
+      (paper.paperTitle ?? "").toLowerCase().includes(query) ||
       paper.universityName.toLowerCase().includes(query);
     return matchesUniversity && matchesExam && matchesStage && matchesDate && matchesOperator && matchesAssignmentState && matchesSearch;
   });
@@ -440,7 +522,8 @@ export function PapersPage() {
     }
 
     try {
-      const summary = await importPapers(file, importContext);
+      const normalizedFile = await normalizeImportFile(file);
+      const summary = await importPapers(normalizedFile, importContext);
       showToast(`Import complete: ${summary.created} created, ${summary.updated} updated`, "success");
     } catch (importError) {
       showToast(importError.message, "error");
@@ -662,6 +745,9 @@ export function PapersPage() {
               <button type="button" onClick={handleOpenAnalytics} className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-800 transition-colors hover:bg-slate-100">
                 Run Analytic Check
               </button>
+              <button type="button" onClick={() => navigate("/papers/verification")} className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-800 transition-colors hover:bg-slate-100">
+                Hard Copy Verify
+              </button>
               <button type="button" onClick={handleDownloadSample} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-600 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
                 Download Sample
               </button>
@@ -671,7 +757,7 @@ export function PapersPage() {
               <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Future assignment timing starts automatically when an operator is assigned</span>
             </div>
           </div>
-          <input ref={importInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleImportFileChange} />
+          <input ref={importInputRef} type="file" accept=".csv,text/csv,.xlsx,.xls" className="hidden" onChange={handleImportFileChange} />
           <form onSubmit={handleCreatePaper} className="grid grid-cols-1 items-end gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-400 dark:text-slate-500">Paper Code *</label>
@@ -773,8 +859,13 @@ export function PapersPage() {
                   />
                 </th>
                 <th className="px-4 py-3">Paper</th>
+                <th className="px-4 py-3">Course</th>
+                <th className="px-4 py-3">Year</th>
+                <th className="px-4 py-3">Type / Title</th>
                 <th className="px-4 py-3">University / Exam</th>
                 <th className="px-4 py-3">Exam Date</th>
+                <th className="px-4 py-3">Time / Marks</th>
+                <th className="px-4 py-3">Examiners</th>
                 <th className="px-4 py-3">Operator</th>
                 <th className="px-4 py-3 text-center">Status</th>
                 <th className="px-4 py-3 text-right">Actions</th>
@@ -799,6 +890,24 @@ export function PapersPage() {
                       </button>
                       <span className="mt-0.5 block text-[10px] text-slate-400 dark:text-slate-500">{paperCaption}</span>
                     </td>
+                    <td className="px-4 py-2.5 text-xs text-slate-600">
+                      <span className="block max-w-[200px] truncate" title={paper.course || "-"}>
+                        {paper.course || "-"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5 text-xs text-slate-600">
+                      <span className="block max-w-[150px] truncate" title={paper.year || "-"}>
+                        {paper.year || "-"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5 text-xs text-slate-600">
+                      <span className="block max-w-[180px] truncate font-semibold" title={paper.paperType || "-"}>
+                        {paper.paperType || "-"}
+                      </span>
+                      <span className="block max-w-[220px] truncate text-[10px] text-slate-400" title={paper.paperTitle || "-"}>
+                        {paper.paperTitle || "-"}
+                      </span>
+                    </td>
                     <td className="px-4 py-2.5 text-xs text-slate-600 dark:text-slate-300">
                       <span className="block max-w-[170px] truncate font-semibold" title={paper.universityName}>
                         {paper.universityName}
@@ -808,6 +917,18 @@ export function PapersPage() {
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-xs text-slate-500 dark:text-slate-400">{formatDateString(paper.date)}</td>
+                    <td className="px-4 py-2.5 text-xs text-slate-600">
+                      <span className="block whitespace-nowrap">{paper.examTime || "-"}</span>
+                      <span className="block text-[10px] text-slate-400">Marks: {paper.marks || "-"}</span>
+                    </td>
+                    <td className="px-4 py-2.5 text-xs text-slate-600">
+                      <span className="block max-w-[220px] truncate" title={paper.examiner1 || "-"}>
+                        {paper.examiner1 || "-"}
+                      </span>
+                      <span className="block max-w-[220px] truncate text-[10px] text-slate-400" title={paper.examiner2 || "-"}>
+                        {paper.examiner2 || "-"}
+                      </span>
+                    </td>
                     <td className="px-4 py-2.5 text-xs">
                       <OperatorBadge operator={operator} />
                     </td>

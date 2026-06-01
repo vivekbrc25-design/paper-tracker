@@ -9,6 +9,7 @@ import { AppShell } from "./components/Layout.jsx";
 import { LoginPage } from "./components/Login.jsx";
 import { PapersPage } from "./components/Papers.jsx";
 import { ReportsPage } from "./components/Reports.jsx";
+import { VerificationPage } from "./components/Verification.jsx";
 import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
 import { WorkspaceProvider } from "./context/WorkspaceContext.jsx";
 
@@ -49,6 +50,14 @@ function ProtectedApp() {
                 <Suspense fallback={<RouteLoadingMessage message="Loading analytics workspace..." />}>
                   <AnalyticsCheckPage />
                 </Suspense>
+              </AuthorizedRoute>
+            }
+          />
+          <Route
+            path="/papers/verification"
+            element={
+              <AuthorizedRoute path="/papers/verification">
+                <VerificationPage />
               </AuthorizedRoute>
             }
           />

@@ -56,8 +56,9 @@ function getStatusIndex(status) {
 }
 
 export function ReportsPage() {
-  const { papers, exams, operators, theme } = useWorkspace();
+  const { papers, universities, exams, operators, theme } = useWorkspace();
   const [filters, setFilters] = useState({
+    universityId: "all",
     sessionId: "all",
     operatorId: "all",
     stage: "all",
@@ -75,9 +76,15 @@ export function ReportsPage() {
     setTimelinePage(1);
   }, [filters, timelineSort, timelinePageSize]);
 
+  const visibleExams = useMemo(
+    () => exams.filter((exam) => filters.universityId === "all" || exam.universityId === filters.universityId),
+    [exams, filters.universityId],
+  );
+
   const analyzedPapers = useMemo(
     () =>
       papers.filter((paper) => {
+        const matchesUniversity = filters.universityId === "all" || paper.universityId === filters.universityId;
         const matchesSession = filters.sessionId === "all" || paper.examId === filters.sessionId;
         const matchesStage = filters.stage === "all" || paper.status === filters.stage;
         const matchesExamDate = !filters.examDate || normalizeDateValue(paper.date) === normalizeDateValue(filters.examDate);
@@ -90,7 +97,7 @@ export function ReportsPage() {
           paper.universityName.toLowerCase().includes(query) ||
           paper.examName.toLowerCase().includes(query);
 
-        return matchesSession && matchesStage && matchesExamDate && matchesAssigned && matchesSelectedOperator && matchesSearch;
+        return matchesUniversity && matchesSession && matchesStage && matchesExamDate && matchesAssigned && matchesSelectedOperator && matchesSearch;
       }),
     [papers, filters, query],
   );
@@ -146,7 +153,34 @@ export function ReportsPage() {
     return { ...stage, bestOperator, bestCount };
   });
 
-  const visibleOperators = operators.filter((operator) => filters.operatorId === "all" || operator.id === filters.operatorId);
+  const involvedOperatorIds = useMemo(() => {
+    const ids = new Set();
+
+    analyzedPapers.forEach((paper) => {
+      if (paper.assignedUserId) {
+        ids.add(paper.assignedUserId);
+      }
+
+      (paper.assignmentHistory ?? []).forEach((entry) => {
+        if (entry.operatorId) {
+          ids.add(entry.operatorId);
+        }
+      });
+    });
+
+    return ids;
+  }, [analyzedPapers]);
+
+  const visibleOperators = useMemo(
+    () =>
+      operators.filter(
+        (operator) =>
+          involvedOperatorIds.has(operator.id) &&
+          (filters.operatorId === "all" || operator.id === filters.operatorId),
+      ),
+    [operators, involvedOperatorIds, filters.operatorId],
+  );
+
   const sortedTimelinePapers = useMemo(() => {
     const sorted = [...analyzedPapers];
 
@@ -193,7 +227,29 @@ export function ReportsPage() {
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-7">
+          <div>
+            <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">University</label>
+            <select
+              value={filters.universityId}
+              onChange={(event) =>
+                setFilters((current) => ({
+                  ...current,
+                  universityId: event.target.value,
+                  sessionId: "all",
+                }))
+              }
+              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none dark:border-slate-700 dark:bg-[#1e293b] dark:text-slate-100"
+            >
+              <option value="all">-- All Universities --</option>
+              {universities.map((university) => (
+                <option key={university.id} value={university.id}>
+                  {university.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div>
             <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Exam Session</label>
             <select
@@ -202,7 +258,7 @@ export function ReportsPage() {
               className="w-full rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none dark:border-slate-700 dark:bg-[#1e293b] dark:text-slate-100"
             >
               <option value="all">-- All Exam Sessions --</option>
-              {exams.map((exam) => (
+              {visibleExams.map((exam) => (
                 <option key={exam.id} value={exam.id}>
                   {exam.name}
                 </option>
@@ -269,6 +325,7 @@ export function ReportsPage() {
                 type="button"
                 onClick={() =>
                   setFilters({
+                    universityId: "all",
                     sessionId: "all",
                     operatorId: "all",
                     stage: "all",
@@ -367,61 +424,6 @@ export function ReportsPage() {
             )}
           </div>
         ))}
-      </div>
-
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#0f172a]">
-        <div className="flex items-center justify-between border-b border-slate-100 p-4 dark:border-slate-800">
-          <div>
-            <h4 className="text-sm font-bold text-slate-900 dark:text-white">Operator Workload Ledger</h4>
-            <p className="text-xs text-slate-400">Assignment counts recalculate from the active report filters.</p>
-          </div>
-          <span className="rounded bg-slate-900 px-2 py-0.5 text-xs font-semibold text-white">{visibleOperators.length} Operators In View</span>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-left">
-            <thead className="border-b border-slate-100 bg-slate-50/60 text-xs uppercase tracking-wider text-slate-400 dark:border-slate-800/80 dark:bg-slate-900/30 dark:text-slate-500">
-              <tr>
-                <th className="px-4 py-3">Operator</th>
-                <th className="px-4 py-3">Role</th>
-                <th className="px-4 py-3 text-center">Active</th>
-                <th className="px-4 py-3 text-center">Completed</th>
-                <th className="px-4 py-3 text-center">Total</th>
-                <th className="px-4 py-3 text-right">Success Rate</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-xs dark:divide-slate-800/50">
-              {visibleOperators.map((operator) => {
-                const historyEntries = getHistoryEntries(operator.id);
-                const active = historyEntries.filter((entry) => entry.outcome === "active").length;
-                const completed = historyEntries.filter((entry) => entry.outcome === "completed").length;
-                const returned = historyEntries.filter((entry) => entry.outcome === "returned").length;
-                const total = historyEntries.length;
-                const finished = completed + returned;
-                const rate = finished ? Math.round((completed / finished) * 100) : 0;
-
-                return (
-                  <tr key={operator.id}>
-                    <td className="px-4 py-2.5 font-bold text-slate-800 dark:text-white">{operator.name}</td>
-                    <td className="px-4 py-2.5">
-                      <span className={`rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${roleBadgeClasses(operator.role)}`}>{operator.role}</span>
-                    </td>
-                    <td className="px-4 py-2.5 text-center font-semibold text-slate-700 dark:text-slate-300">{active}</td>
-                    <td className="px-4 py-2.5 text-center font-semibold text-emerald-600 dark:text-emerald-400">{completed}</td>
-                    <td className="px-4 py-2.5 text-center font-semibold text-slate-500">{total}</td>
-                    <td className="px-4 py-2.5 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <span className="font-mono text-[11px] font-bold">{rate}%</span>
-                        <div className="hidden h-1.5 w-16 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800 sm:block">
-                          <div className="h-full bg-emerald-500" style={{ width: `${rate}%` }} />
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
       </div>
 
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#0f172a]">
@@ -541,6 +543,61 @@ export function ReportsPage() {
               Next
             </button>
           </div>
+        </div>
+      </div>
+
+      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#0f172a]">
+        <div className="flex items-center justify-between border-b border-slate-100 p-4 dark:border-slate-800">
+          <div>
+            <h4 className="text-sm font-bold text-slate-900 dark:text-white">Operator Workload Ledger</h4>
+            <p className="text-xs text-slate-400">Assignment counts recalculate from the active report filters.</p>
+          </div>
+          <span className="rounded bg-slate-900 px-2 py-0.5 text-xs font-semibold text-white">{visibleOperators.length} Operators In View</span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-left">
+            <thead className="border-b border-slate-100 bg-slate-50/60 text-xs uppercase tracking-wider text-slate-400 dark:border-slate-800/80 dark:bg-slate-900/30 dark:text-slate-500">
+              <tr>
+                <th className="px-4 py-3">Operator</th>
+                <th className="px-4 py-3">Role</th>
+                <th className="px-4 py-3 text-center">Active</th>
+                <th className="px-4 py-3 text-center">Completed</th>
+                <th className="px-4 py-3 text-center">Total</th>
+                <th className="px-4 py-3 text-right">Success Rate</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-xs dark:divide-slate-800/50">
+              {visibleOperators.map((operator) => {
+                const historyEntries = getHistoryEntries(operator.id);
+                const active = historyEntries.filter((entry) => entry.outcome === "active").length;
+                const completed = historyEntries.filter((entry) => entry.outcome === "completed").length;
+                const returned = historyEntries.filter((entry) => entry.outcome === "returned").length;
+                const total = historyEntries.length;
+                const finished = completed + returned;
+                const rate = finished ? Math.round((completed / finished) * 100) : 0;
+
+                return (
+                  <tr key={operator.id}>
+                    <td className="px-4 py-2.5 font-bold text-slate-800 dark:text-white">{operator.name}</td>
+                    <td className="px-4 py-2.5">
+                      <span className={`rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${roleBadgeClasses(operator.role)}`}>{operator.role}</span>
+                    </td>
+                    <td className="px-4 py-2.5 text-center font-semibold text-slate-700 dark:text-slate-300">{active}</td>
+                    <td className="px-4 py-2.5 text-center font-semibold text-emerald-600 dark:text-emerald-400">{completed}</td>
+                    <td className="px-4 py-2.5 text-center font-semibold text-slate-500">{total}</td>
+                    <td className="px-4 py-2.5 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <span className="font-mono text-[11px] font-bold">{rate}%</span>
+                        <div className="hidden h-1.5 w-16 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800 sm:block">
+                          <div className="h-full bg-emerald-500" style={{ width: `${rate}%` }} />
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
