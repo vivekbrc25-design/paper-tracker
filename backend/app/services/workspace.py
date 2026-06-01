@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import csv
+import logging
 import re
 from datetime import UTC, datetime
 from io import StringIO
 from uuid import uuid4
 
-from pymongo.errors import DuplicateKeyError
+from pymongo.errors import DuplicateKeyError, ServerSelectionTimeoutError
 
 from app.core.config import settings
 from app.defaults import get_default_payload
@@ -22,6 +23,8 @@ from app.schemas import (
     UniversityCreate,
 )
 
+
+logger = logging.getLogger(__name__)
 
 COLLECTIONS = {
     "universities": "universities",
@@ -151,7 +154,15 @@ def _find_paper_by_exam_code(database, exam_id: str, code: str, exclude_id: str 
     return None
 
 
-def ensure_indexes(database) -> None:
+def ensure_indexes(database, timeout_ms: int | None = None) -> None:
+    if timeout_ms is not None:
+        try:
+            database.client.server_info()
+        except ServerSelectionTimeoutError as exc:
+            raise ServerSelectionTimeoutError(
+                f"MongoDB not reachable within {timeout_ms}ms: {exc}"
+            ) from exc
+
     database[COLLECTIONS["universities"]].create_index("name", unique=True)
     database[COLLECTIONS["exams"]].create_index([("universityId", 1), ("name", 1)], unique=True)
     database[COLLECTIONS["operators"]].create_index("name", unique=True)

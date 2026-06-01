@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import concurrent.futures
 import logging
 import secrets
 
@@ -64,15 +65,30 @@ app.add_middleware(
 )
 
 
+_STARTUP_TIMEOUT_SECONDS = 5
+
+
 @app.on_event("startup")
 def startup_event() -> None:
-    try:
-        database = get_database()
-        ensure_indexes(database)
+    database = get_database()
+
+    def _init_db() -> None:
+        ensure_indexes(database, timeout_ms=_STARTUP_TIMEOUT_SECONDS * 1000)
         if settings.seed_demo_data:
             seed_defaults(database)
-    except Exception as exc:  # pragma: no cover - startup should not block UI build
-        print(f"Warning: unable to seed MongoDB on startup: {exc}")
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(_init_db)
+        try:
+            future.result(timeout=_STARTUP_TIMEOUT_SECONDS)
+        except concurrent.futures.TimeoutError:
+            logger.warning(
+                "MongoDB index creation timed out after %ds on startup — "
+                "indexes will be created on the first request.",
+                _STARTUP_TIMEOUT_SECONDS,
+            )
+        except Exception as exc:  # pragma: no cover - startup should not block UI build
+            logger.warning("Unable to initialise MongoDB on startup: %s", exc)
 
 
 def build_user(user_id: str, display_name: str, role: str) -> dict[str, str]:
