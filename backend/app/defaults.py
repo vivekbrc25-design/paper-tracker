@@ -171,10 +171,10 @@ DEFAULT_PAPERS = [
 ]
 
 
-def get_default_payload() -> dict:
+def get_default_payload(include_papers: bool = True) -> dict:
     return {
         "universities": deepcopy(DEFAULT_UNIVERSITIES),
         "exams": deepcopy(DEFAULT_EXAMS),
         "operators": deepcopy(DEFAULT_OPERATORS),
-        "papers": deepcopy(DEFAULT_PAPERS),
+        "papers": deepcopy(DEFAULT_PAPERS) if include_papers else [],
     }

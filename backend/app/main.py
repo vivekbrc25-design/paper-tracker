@@ -40,6 +40,7 @@ from app.services.workspace import (
     delete_operator,
     delete_paper,
     delete_university,
+    ensure_indexes,
     get_bootstrap,
     get_paper_import_sample,
     get_report_overview,
@@ -66,7 +67,10 @@ app.add_middleware(
 @app.on_event("startup")
 def startup_event() -> None:
     try:
-        seed_defaults(get_database())
+        database = get_database()
+        ensure_indexes(database)
+        if settings.seed_demo_data:
+            seed_defaults(database)
     except Exception as exc:  # pragma: no cover - startup should not block UI build
         print(f"Warning: unable to seed MongoDB on startup: {exc}")
 

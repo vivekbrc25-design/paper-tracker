@@ -8,6 +8,7 @@ from uuid import uuid4
 
 from pymongo.errors import DuplicateKeyError
 
+from app.core.config import settings
 from app.defaults import get_default_payload
 from app.schemas import (
     BulkDeleteRequest,
@@ -154,52 +155,30 @@ def ensure_indexes(database) -> None:
     database[COLLECTIONS["universities"]].create_index("name", unique=True)
     database[COLLECTIONS["exams"]].create_index([("universityId", 1), ("name", 1)], unique=True)
     database[COLLECTIONS["operators"]].create_index("name", unique=True)
-    database[COLLECTIONS["papers"]].update_many(
-        {},
-        [
-            {
-                "$set": {
-                    "code": {"$toUpper": {"$trim": {"input": {"$ifNull": ["$code", ""]}}}},
-                    "codeKey": {
-                        "$replaceAll": {
-                            "input": {
-                                "$replaceAll": {
-                                    "input": {
-                                        "$replaceAll": {
-                                            "input": {"$toUpper": {"$trim": {"input": {"$ifNull": ["$code", ""]}}}},
-                                            "find": " ",
-                                            "replacement": "",
-                                        }
-                                    },
-                                    "find": "\t",
-                                    "replacement": "",
-                                }
-                            },
-                            "find": "\n",
-                            "replacement": "",
-                        }
-                    },
-                }
-            }
-        ],
-    )
     database[COLLECTIONS["papers"]].create_index([("examId", 1), ("code", 1)], unique=True)
-    database[COLLECTIONS["papers"]].create_index([("examId", 1), ("codeKey", 1)], unique=True)
+    database[COLLECTIONS["papers"]].create_index(
+        [("examId", 1), ("codeKey", 1)],
+        unique=True,
+        sparse=True,
+        name="examId_1_codeKey_1_sparse",
+    )
 
 
-def seed_defaults(database) -> None:
+def seed_defaults(database, include_papers: bool | None = None) -> None:
     ensure_indexes(database)
     if database[COLLECTIONS["universities"]].count_documents({}) > 0:
         return
-    payload = get_default_payload()
+    should_include_papers = settings.seed_demo_papers if include_papers is None else include_papers
+    payload = get_default_payload(include_papers=should_include_papers)
     for key, collection_name in COLLECTIONS.items():
         documents = [prepare_document(item) for item in payload[key]]
         if documents:
             database[collection_name].insert_many(documents)
 
 
-def reset_defaults(database) -> dict:
-    payload = get_default_payload()
+def reset_defaults(database, include_papers: bool | None = None) -> dict:
+    should_include_papers = settings.seed_demo_papers if include_papers is None else include_papers
+    payload = get_default_payload(include_papers=should_include_papers)
     for collection_name in COLLECTIONS.values():
         database[collection_name].delete_many({})
     for key, collection_name in COLLECTIONS.items():
@@ -257,7 +236,7 @@ def _create_active_assignment(stage: str, operator_id: str, operator_name: str |
         "id": f"hist_{uuid4().hex[:12]}",
         "stage": stage,
         "operatorId": operator_id,
-        "operatorName": operator_name,
+        "operatorName": None,
         "assignedAt": utc_now(),
         "endedAt": None,
         "completedAt": None,
