@@ -76,6 +76,7 @@ class PaperBase(BaseModel):
     course: str | None = Field(default=None, max_length=240)
     year: str | None = Field(default=None, max_length=120)
     quantity: str | None = Field(default=None, max_length=40)
+    sCode: str | None = Field(default=None, max_length=120)
     paperType: str | None = Field(default=None, max_length=160)
     paperTitle: str | None = Field(default=None, max_length=240)
     examTime: str | None = Field(default=None, max_length=120)
@@ -104,6 +105,7 @@ class PaperUpdate(BaseModel):
     course: str | None = None
     year: str | None = None
     quantity: str | None = None
+    sCode: str | None = None
     paperType: str | None = None
     paperTitle: str | None = None
     examTime: str | None = None

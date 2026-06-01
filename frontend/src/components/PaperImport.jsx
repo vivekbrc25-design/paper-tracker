@@ -13,16 +13,15 @@ const TARGET_FIELDS = [
   { key: "paperTitle", label: "Subject Name", aliases: ["subjectname", "papertitle", "title", "subject"] },
   { key: "name", label: "Paper Name", aliases: ["papername", "name"] },
   { key: "code", label: "Paper Code", aliases: ["papercode", "code"] },
+  { key: "sCode", label: "SCode", aliases: ["scode", "subjectcode"] },
   { key: "paperType", label: "Paper Type", aliases: ["papertype", "type"] },
   { key: "year", label: "Annual / Semester", aliases: ["annualsemester", "semester", "year", "annual"] },
   { key: "quantity", label: "QTY", aliases: ["qty", "quantity"] },
   { key: "date", label: "Exam Date", aliases: ["examdate", "date"] },
   { key: "examTime", label: "Exam Time", aliases: ["examtime", "time"] },
   { key: "marks", label: "Marks", aliases: ["marks", "mm", "maxmarks"] },
-  { key: "examiner1", label: "Examiner 1", aliases: ["examiner1"] },
-  { key: "examiner2", label: "Examiner 2", aliases: ["examiner2"] },
 ];
-const CANONICAL_HEADERS = ["courseName", "subjectName", "paperName", "paperCode", "paperType", "annualSemester", "qty", "examDate", "examTime", "marks", "examiner1", "examiner2"];
+const CANONICAL_HEADERS = ["courseName", "subjectName", "paperName", "paperCode", "sCode", "paperType", "annualSemester", "qty", "examDate", "examTime", "marks"];
 
 function normalizeHeaderKey(value) {
   return String(value ?? "")
@@ -137,14 +136,13 @@ function buildPreviewRows(parsedFile, mapping) {
     paperTitle: getRowValue(row, mapping, TARGET_FIELDS[1]),
     name: getRowValue(row, mapping, TARGET_FIELDS[2]),
     code: getRowValue(row, mapping, TARGET_FIELDS[3]).toUpperCase(),
-    paperType: getRowValue(row, mapping, TARGET_FIELDS[4]),
-    year: getRowValue(row, mapping, TARGET_FIELDS[5]),
-    quantity: getRowValue(row, mapping, TARGET_FIELDS[6]),
-    date: normalizeDateValue(getRowValue(row, mapping, TARGET_FIELDS[7])),
-    examTime: getRowValue(row, mapping, TARGET_FIELDS[8]),
-    marks: getRowValue(row, mapping, TARGET_FIELDS[9]),
-    examiner1: getRowValue(row, mapping, TARGET_FIELDS[10]),
-    examiner2: getRowValue(row, mapping, TARGET_FIELDS[11]),
+    sCode: getRowValue(row, mapping, TARGET_FIELDS[4]),
+    paperType: getRowValue(row, mapping, TARGET_FIELDS[5]),
+    year: getRowValue(row, mapping, TARGET_FIELDS[6]),
+    quantity: getRowValue(row, mapping, TARGET_FIELDS[7]),
+    date: normalizeDateValue(getRowValue(row, mapping, TARGET_FIELDS[8])),
+    examTime: getRowValue(row, mapping, TARGET_FIELDS[9]),
+    marks: getRowValue(row, mapping, TARGET_FIELDS[10]),
   }));
 }
 
@@ -158,14 +156,13 @@ function buildCanonicalCsv(rows) {
         row.paperTitle,
         row.name,
         row.code,
+        row.sCode,
         row.paperType,
         row.year,
         row.quantity,
         row.date,
         row.examTime,
         row.marks,
-        row.examiner1,
-        row.examiner2,
       ]
         .map((value) => escapeCsvValue(value))
         .join(","),
@@ -440,6 +437,7 @@ export function PaperImportPage() {
                   <tr>
                     <th className="px-4 py-3">Source</th>
                     <th className="px-4 py-3">Paper Code</th>
+                    <th className="px-4 py-3">SCode</th>
                     <th className="px-4 py-3">Paper Name</th>
                     <th className="px-4 py-3">Course Name</th>
                     <th className="px-4 py-3">Subject Name</th>
@@ -459,6 +457,7 @@ export function PaperImportPage() {
                         <span className="block">Row {row.rowNumber}</span>
                       </td>
                       <td className="px-4 py-3 font-semibold text-slate-900">{row.code || "Missing code"}</td>
+                      <td className="px-4 py-3 text-xs text-slate-600">{row.sCode || "-"}</td>
                       <td className="px-4 py-3 text-xs text-slate-600">{row.name || "-"}</td>
                       <td className="px-4 py-3 text-xs text-slate-600">{row.course || "-"}</td>
                       <td className="px-4 py-3 text-xs text-slate-600">{row.paperTitle || "-"}</td>

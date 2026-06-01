@@ -405,6 +405,7 @@ def create_paper(database, payload: PaperCreate) -> dict:
         "course": _clean_optional_text(payload.course),
         "year": _clean_optional_text(payload.year),
         "quantity": _clean_optional_text(payload.quantity),
+        "sCode": _clean_optional_text(payload.sCode),
         "paperType": _clean_optional_text(payload.paperType),
         "paperTitle": _clean_optional_text(payload.paperTitle),
         "examTime": _clean_optional_text(payload.examTime),
@@ -451,7 +452,7 @@ def update_paper(database, paper_id: str, payload: PaperUpdate) -> dict:
     if "name" in updated:
         updated["name"] = updated["name"].strip() if updated["name"] else ""
     updated["date"] = _normalize_date_value(updated.get("date"))
-    for key in ("course", "year", "quantity", "paperType", "paperTitle", "examTime", "marks", "examiner1", "examiner2", "verificationStatus", "verificationNote", "verificationBy"):
+    for key in ("course", "year", "quantity", "sCode", "paperType", "paperTitle", "examTime", "marks", "examiner1", "examiner2", "verificationStatus", "verificationNote", "verificationBy"):
         updated[key] = _clean_optional_text(updated.get(key))
 
     university = universities_by_id.get(updated["universityId"])
@@ -504,9 +505,9 @@ def bulk_delete_papers(database, payload: BulkDeleteRequest) -> None:
 def get_paper_import_sample() -> str:
     return "\n".join(
         [
-            "courseName,subjectName,paperName,paperCode,paperType,annualSemester,qty,examDate,examTime,marks,examiner1,examiner2",
-            "B.Sc.,Differential Calculus,Advanced Calculus,MAT-401,Theory,First Year,120,2026-06-15,9:00 AM To 12:00 PM,70,Dr A,Dr B",
-            "B.Tech.,Engineering Physics,Engineering Physics,PHY-210,Theory,Second Year,80,2026-06-17,2:00 PM To 5:00 PM,100,,",
+            "courseName,subjectName,paperName,paperCode,sCode,paperType,annualSemester,qty,examDate,examTime,marks",
+            "B.Sc.,Differential Calculus,Advanced Calculus,MAT-401,DC-401,Theory,First Year,120,2026-06-15,9:00 AM To 12:00 PM,70",
+            "B.Tech.,Engineering Physics,Engineering Physics,PHY-210,EP-210,Theory,Second Year,80,2026-06-17,2:00 PM To 5:00 PM,100",
         ]
     )
 
@@ -538,6 +539,7 @@ def import_papers(database, university_id: str, exam_id: str, csv_content: str) 
     course_key = header_map.get("coursename") or header_map.get("course")
     year_key = header_map.get("annualsemester") or header_map.get("semester") or header_map.get("year")
     quantity_key = header_map.get("qty") or header_map.get("quantity")
+    scode_key = header_map.get("scode") or header_map.get("subjectcode")
     type_key = header_map.get("papertype") or header_map.get("type")
     title_key = header_map.get("subjectname") or header_map.get("papertitle") or header_map.get("title")
     time_key = header_map.get("examtime") or header_map.get("time")
@@ -562,6 +564,7 @@ def import_papers(database, university_id: str, exam_id: str, csv_content: str) 
         course = _clean_optional_text(row.get(course_key)) if course_key else None
         year = _clean_optional_text(row.get(year_key)) if year_key else None
         quantity = _clean_optional_text(row.get(quantity_key)) if quantity_key else None
+        scode = _clean_optional_text(row.get(scode_key)) if scode_key else None
         paper_type = _clean_optional_text(row.get(type_key)) if type_key else None
         paper_title = _clean_optional_text(row.get(title_key)) if title_key else None
         exam_time = _clean_optional_text(row.get(time_key)) if time_key else None
@@ -587,6 +590,8 @@ def import_papers(database, university_id: str, exam_id: str, csv_content: str) 
                 updated["year"] = year
             if quantity_key:
                 updated["quantity"] = quantity
+            if scode_key:
+                updated["sCode"] = scode
             if type_key:
                 updated["paperType"] = paper_type
             if title_key:
@@ -621,6 +626,7 @@ def import_papers(database, university_id: str, exam_id: str, csv_content: str) 
                 "course": course,
                 "year": year,
                 "quantity": quantity,
+                "sCode": scode,
                 "paperType": paper_type,
                 "paperTitle": paper_title,
                 "examTime": exam_time,

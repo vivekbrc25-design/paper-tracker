@@ -377,8 +377,16 @@ export function VerificationPage() {
                       >
                         <div>
                           <p className="text-sm font-bold text-slate-900">{paper.code}</p>
-                          <p className="mt-0.5 text-xs text-slate-500">{paper.name || "Paper name pending import"}</p>
-                          <p className="mt-1 text-[11px] text-slate-400">{paper.examName}</p>
+                          <p className="mt-0.5 text-xs text-slate-500">
+                            {paper.paperTitle || "Subject name pending import"}
+                            <span className="text-slate-400"> | </span>
+                            <span>{paper.sCode || "-"}</span>
+                          </p>
+                          <p className="mt-1 text-[11px] text-slate-400">
+                            {paper.name || "Paper name pending import"}
+                            <span> | </span>
+                            <span>{paper.examName}</span>
+                          </p>
                         </div>
                         <VerificationBadge paper={paper} />
                       </button>
@@ -547,6 +555,14 @@ export function VerificationPage() {
                     <p className="mt-2 text-2xl font-bold leading-tight text-slate-900 md:text-3xl">{selectedPaper.name || "-"}</p>
                   </div>
                   <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <p className="text-sm font-semibold uppercase tracking-wider text-slate-400">Subject Name</p>
+                    <p className="mt-2 text-2xl font-bold leading-tight text-slate-900 md:text-3xl">{selectedPaper.paperTitle || "-"}</p>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <p className="text-sm font-semibold uppercase tracking-wider text-slate-400">SCode</p>
+                    <p className="mt-2 text-2xl font-bold leading-tight text-slate-900 md:text-3xl">{selectedPaper.sCode || "-"}</p>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                     <p className="text-sm font-semibold uppercase tracking-wider text-slate-400">Paper Code</p>
                     <p className="mt-2 text-2xl font-bold leading-tight text-slate-900 md:text-3xl">{selectedPaper.code || "-"}</p>
                   </div>
@@ -561,14 +577,6 @@ export function VerificationPage() {
                   <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                     <p className="text-sm font-semibold uppercase tracking-wider text-slate-400">QTY</p>
                     <p className="mt-2 text-2xl font-bold leading-tight text-slate-900 md:text-3xl">{selectedPaper.quantity || "-"}</p>
-                  </div>
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <p className="text-sm font-semibold uppercase tracking-wider text-slate-400">Subject Name</p>
-                    <p className="mt-2 text-2xl font-bold leading-tight text-slate-900 md:text-3xl">{selectedPaper.paperTitle || "-"}</p>
-                  </div>
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <p className="text-sm font-semibold uppercase tracking-wider text-slate-400">SCode</p>
-                    <p className="mt-2 text-2xl font-bold leading-tight text-slate-900 md:text-3xl">{selectedPaper.paperType || "-"}</p>
                   </div>
                 </div>
 
