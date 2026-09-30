@@ -7,7 +7,8 @@ from datetime import UTC, datetime
 from io import StringIO
 from uuid import uuid4
 
-from pymongo.errors import DuplicateKeyError, ServerSelectionTimeoutError
+from pymongo import InsertOne, ReplaceOne
+from pymongo.errors import BulkWriteError, DuplicateKeyError, ServerSelectionTimeoutError
 
 from app.core.config import settings
 from app.defaults import get_default_payload
@@ -561,9 +562,19 @@ def import_papers(database, university_id: str, exam_id: str, csv_content: str) 
     if not code_key:
         raise ValueError("The CSV must include a paperCode column.")
 
+    # Preload every existing paper for this exam once, instead of running a
+    # find + write per CSV row. That per-row pattern is what made large
+    # imports slow enough to hit the client/proxy timeout.
+    existing_by_code_key: dict[str, dict] = {}
+    for paper in database[COLLECTIONS["papers"]].find({"examId": exam_id}):
+        serialized = serialize_document(paper)
+        existing_by_code_key[serialized.get("codeKey") or _paper_code_key(serialized.get("code"))] = serialized
+
     processed = 0
     created = 0
     updated_count = 0
+    operations = []
+    operation_row_indices = []
 
     for row_index, row in enumerate(reader, start=2):
         if not any((value or "").strip() for value in row.values()):
@@ -586,11 +597,12 @@ def import_papers(database, university_id: str, exam_id: str, csv_content: str) 
         if not code:
             raise ValueError(f"Row {row_index} is missing paperCode.")
 
-        existing = _find_paper_by_exam_code(database, exam_id, code)
+        code_key_value = _paper_code_key(code)
+        existing = existing_by_code_key.get(code_key_value)
         if existing:
             updated = dict(existing)
             updated["code"] = code
-            updated["codeKey"] = _paper_code_key(code)
+            updated["codeKey"] = code_key_value
             if name_key:
                 updated["name"] = name
             if date_key:
@@ -621,14 +633,16 @@ def import_papers(database, university_id: str, exam_id: str, csv_content: str) 
             updated["examName"] = exam["name"]
             updated = _normalize_assignment_for_status(updated, operators_by_id)
             updated["assignmentHistory"] = _reconcile_history(existing, updated, operators_by_id)
-            database[COLLECTIONS["papers"]].replace_one({"id": existing["id"]}, prepare_document(updated))
+            operations.append(ReplaceOne({"id": existing["id"]}, prepare_document(updated)))
+            operation_row_indices.append(row_index)
+            existing_by_code_key[code_key_value] = updated
             updated_count += 1
         else:
             document = {
                 "id": uuid4().hex,
                 "name": name,
                 "code": code,
-                "codeKey": _paper_code_key(code),
+                "codeKey": code_key_value,
                 "universityId": university_id,
                 "universityName": university["name"],
                 "examId": exam_id,
@@ -659,16 +673,30 @@ def import_papers(database, university_id: str, exam_id: str, csv_content: str) 
                 document,
                 operators_by_id,
             )
-            try:
-                database[COLLECTIONS["papers"]].insert_one(prepare_document(document))
-            except DuplicateKeyError as exc:
-                raise ValueError(f"Row {row_index} uses a duplicate paper code.") from exc
+            operations.append(InsertOne(prepare_document(document)))
+            operation_row_indices.append(row_index)
+            existing_by_code_key[code_key_value] = document
             created += 1
 
         processed += 1
 
     if processed == 0:
         raise ValueError("The import file does not contain any paper rows.")
+
+    if operations:
+        try:
+            database[COLLECTIONS["papers"]].bulk_write(operations, ordered=True)
+        except BulkWriteError as exc:
+            failed_index = None
+            write_errors = exc.details.get("writeErrors") or []
+            if write_errors:
+                failed_index = write_errors[0].get("index")
+            row = operation_row_indices[failed_index] if failed_index is not None else None
+            message = (
+                f"Row {row} uses a duplicate paper code." if row is not None
+                else "The import file contains a duplicate paper code."
+            )
+            raise ValueError(message) from exc
 
     return ImportPapersResponse(processed=processed, created=created, updated=updated_count)
 

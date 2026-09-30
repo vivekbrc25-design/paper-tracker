@@ -8,6 +8,7 @@ from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, Respon
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from starlette.concurrency import run_in_threadpool
 
 from app.core.config import settings
 from app.db.mongo import get_database
@@ -248,7 +249,7 @@ async def import_paper_rows(
 ) -> ImportPapersResponse:
     try:
         content = (await file.read()).decode("utf-8-sig")
-        return import_papers(get_database(), universityId, examId, content)
+        return await run_in_threadpool(import_papers, get_database(), universityId, examId, content)
     except UnicodeDecodeError as exc:
         raise HTTPException(status_code=400, detail="Please upload a UTF-8 CSV file.") from exc
     except ValueError as exc:

@@ -100,7 +100,7 @@ export const workspaceApi = {
     formData.append("file", file);
     formData.append("universityId", payload.universityId);
     formData.append("examId", payload.examId);
-    return unwrap(client.post("/api/papers/import", formData));
+    return unwrap(client.post("/api/papers/import", formData, { timeout: 120000 }));
   },
   updatePaper: (id, payload) => unwrap(client.patch(`/api/papers/${id}`, payload)),
   deletePaper: (id) => unwrap(client.delete(`/api/papers/${id}`)),
